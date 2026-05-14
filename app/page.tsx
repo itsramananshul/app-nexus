@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CollapseController } from "@/components/CollapseController";
 import { NeuralWatch } from "@/components/NeuralWatch";
+import { NexusApiKeysPanel } from "@/components/NexusApiKeysPanel";
 import { NoNodesView } from "@/components/NoNodesView";
 import { SentinelWatch } from "@/components/SentinelWatch";
 import { TopBar } from "@/components/TopBar";
-import { getNodes } from "@/lib/nodes";
+import { getNodes, type NodeConfig } from "@/lib/nodes";
+import { useNodeKeyOverrides } from "@/lib/nodeKeyOverrides";
 import type {
   CollapseApiKeys,
   CollapseUrls,
@@ -17,10 +19,24 @@ import { usePoller } from "@/lib/usePoller";
 const ALERT_MAX = 200;
 
 export default function Page() {
-  const nodes = useMemo(() => getNodes(), []);
+  const baseNodes = useMemo(() => getNodes(), []);
   const [alerts, setAlerts] = useState<SentinelAlert[]>([]);
   const [collapsingNodeId, setCollapsingNodeId] = useState<string | null>(null);
   const [now, setNow] = useState<Date>(new Date());
+  const [keysPanelOpen, setKeysPanelOpen] = useState(false);
+
+  const { overrides, setOverride, clearOverride } = useNodeKeyOverrides();
+
+  // Merge localStorage overrides on top of env-var-derived apiKeys.
+  const nodes = useMemo<NodeConfig[]>(() => {
+    return baseNodes.map((n) => {
+      const override = overrides[n.id];
+      if (override && override.trim() !== "") {
+        return { ...n, apiKey: override.trim() };
+      }
+      return n;
+    });
+  }, [baseNodes, overrides]);
 
   const handleAlert = useCallback((alert: SentinelAlert) => {
     setAlerts((prev) => [alert, ...prev].slice(0, ALERT_MAX));
@@ -75,7 +91,7 @@ export default function Page() {
     return new Set(collapsingNodeId ? [collapsingNodeId] : []);
   }, [collapsingNodeId]);
 
-  if (nodes.length === 0) {
+  if (baseNodes.length === 0) {
     return <NoNodesView />;
   }
 
@@ -85,6 +101,7 @@ export default function Page() {
         totalNodes={nodes.length}
         statuses={statuses}
         lastPollAt={lastPollAt}
+        onOpenApiKeys={() => setKeysPanelOpen(true)}
       />
 
       <main className="flex-1 overflow-hidden">
@@ -104,6 +121,15 @@ export default function Page() {
         apiKeys={collapseApiKeys}
         onAlert={handleAlert}
         onCollapsingNodeChange={setCollapsingNodeId}
+      />
+
+      <NexusApiKeysPanel
+        open={keysPanelOpen}
+        onClose={() => setKeysPanelOpen(false)}
+        nodes={baseNodes}
+        overrides={overrides}
+        onSetOverride={setOverride}
+        onClearOverride={clearOverride}
       />
     </div>
   );

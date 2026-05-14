@@ -7,6 +7,7 @@ interface TopBarProps {
   totalNodes: number;
   statuses: Map<string, NodeStatus>;
   lastPollAt: Date | null;
+  onOpenApiKeys: () => void;
 }
 
 function formatTime(d: Date): string {
@@ -17,7 +18,12 @@ function formatTime(d: Date): string {
   });
 }
 
-export function TopBar({ totalNodes, statuses, lastPollAt }: TopBarProps) {
+export function TopBar({
+  totalNodes,
+  statuses,
+  lastPollAt,
+  onOpenApiKeys,
+}: TopBarProps) {
   return (
     <header className="border-b border-cyan-500/10 bg-[#06070d]/95 backdrop-blur supports-[backdrop-filter]:bg-[#06070d]/70">
       <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-6 py-3 lg:flex-row lg:items-center lg:justify-between">
@@ -51,6 +57,13 @@ export function TopBar({ totalNodes, statuses, lastPollAt }: TopBarProps) {
             </span>
             Polling live
           </span>
+          <button
+            type="button"
+            onClick={onOpenApiKeys}
+            className="ml-2 inline-flex items-center gap-1 rounded-full bg-slate-800/80 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-200 ring-1 ring-inset ring-slate-700 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+          >
+            <span aria-hidden>🔑</span> API Keys
+          </button>
         </div>
       </div>
     </header>
