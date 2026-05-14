@@ -51,3 +51,11 @@ export interface CollapseUrls {
   support: string | null;
   erp: string | null;
 }
+
+export interface CollapseApiKeys {
+  materialsF2: string | null;
+  orders: string | null;
+  shipments: string | null;
+  support: string | null;
+  erp: string | null;
+}

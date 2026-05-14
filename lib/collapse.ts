@@ -1,10 +1,18 @@
-import type { CollapseCallbacks, CollapseUrls } from "./types";
+import type {
+  CollapseApiKeys,
+  CollapseCallbacks,
+  CollapseUrls,
+} from "./types";
 
 const STEP_GAP_MS = 3000;
 const REQUEST_TIMEOUT_MS = 6000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function authHeaders(apiKey: string | null): Record<string, string> {
+  return apiKey ? { "x-api-key": apiKey } : {};
 }
 
 async function fetchWithTimeout(
@@ -40,26 +48,30 @@ interface ErpItem extends ListItem {
   compliance_status: string;
 }
 
-async function depleteRawMaterials(url: string): Promise<void> {
-  const res = await fetchWithTimeout(`${url}/api/materials`, {});
+async function depleteRawMaterials(
+  url: string,
+  apiKey: string | null,
+): Promise<void> {
+  const headers = authHeaders(apiKey);
+  const res = await fetchWithTimeout(`${url}/api/materials`, { headers });
   if (!res.ok) throw new Error(`Failed to list materials: HTTP ${res.status}`);
   const list = (await res.json()) as ListItem[];
   for (const m of list) {
     try {
       await fetchWithTimeout(`${url}/api/materials/${m.id}/consume`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify({ quantity: 9999 }),
       });
     } catch {
-      // Continue — some materials may already be at 0 and reject. Step
-      // should not abort on per-row failures.
+      // continue
     }
   }
 }
 
-async function flagOrders(url: string): Promise<void> {
-  const res = await fetchWithTimeout(`${url}/api/orders`, {});
+async function flagOrders(url: string, apiKey: string | null): Promise<void> {
+  const headers = authHeaders(apiKey);
+  const res = await fetchWithTimeout(`${url}/api/orders`, { headers });
   if (!res.ok) throw new Error(`Failed to list orders: HTTP ${res.status}`);
   const list = (await res.json()) as OrderItem[];
   for (const o of list) {
@@ -67,17 +79,21 @@ async function flagOrders(url: string): Promise<void> {
     try {
       await fetchWithTimeout(`${url}/api/orders/${o.id}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify({ status: "FLAGGED" }),
       });
     } catch {
-      // Continue.
+      // continue
     }
   }
 }
 
-async function delayShipments(url: string): Promise<void> {
-  const res = await fetchWithTimeout(`${url}/api/shipments`, {});
+async function delayShipments(
+  url: string,
+  apiKey: string | null,
+): Promise<void> {
+  const headers = authHeaders(apiKey);
+  const res = await fetchWithTimeout(`${url}/api/shipments`, { headers });
   if (!res.ok) throw new Error(`Failed to list shipments: HTTP ${res.status}`);
   const list = (await res.json()) as ShipmentItem[];
   for (const s of list) {
@@ -85,7 +101,7 @@ async function delayShipments(url: string): Promise<void> {
     try {
       await fetchWithTimeout(`${url}/api/shipments/${s.id}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify({
           status: "DELAYED",
           delayReason:
@@ -93,15 +109,19 @@ async function delayShipments(url: string): Promise<void> {
         }),
       });
     } catch {
-      // Continue.
+      // continue
     }
   }
 }
 
-async function createSupportTicket(url: string): Promise<void> {
+async function createSupportTicket(
+  url: string,
+  apiKey: string | null,
+): Promise<void> {
+  const headers = authHeaders(apiKey);
   const res = await fetchWithTimeout(`${url}/api/tickets`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify({
       ticket_number: "TKT-NEXUS-001",
       title:
@@ -115,15 +135,17 @@ async function createSupportTicket(url: string): Promise<void> {
       reported_by: "Nexus Automated Alert System",
     }),
   });
-  // 4xx is acceptable on re-run (the ticket already exists). Only treat 5xx
-  // and transport errors as failures.
   if (!res.ok && res.status >= 500) {
     throw new Error(`Failed to create ticket: HTTP ${res.status}`);
   }
 }
 
-async function breachErpCompliance(url: string): Promise<void> {
-  const res = await fetchWithTimeout(`${url}/api/records`, {});
+async function breachErpCompliance(
+  url: string,
+  apiKey: string | null,
+): Promise<void> {
+  const headers = authHeaders(apiKey);
+  const res = await fetchWithTimeout(`${url}/api/records`, { headers });
   if (!res.ok) throw new Error(`Failed to list records: HTTP ${res.status}`);
   const list = (await res.json()) as ErpItem[];
   for (const r of list) {
@@ -131,11 +153,11 @@ async function breachErpCompliance(url: string): Promise<void> {
     try {
       await fetchWithTimeout(`${url}/api/records/${r.id}/compliance`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify({ complianceStatus: "NON_COMPLIANT" }),
       });
     } catch {
-      // Continue.
+      // continue
     }
   }
 }
@@ -143,7 +165,8 @@ async function breachErpCompliance(url: string): Promise<void> {
 interface Step {
   label: string;
   url: string | null;
-  run: (url: string) => Promise<void>;
+  apiKey: string | null;
+  run: (url: string, apiKey: string | null) => Promise<void>;
 }
 
 export const COLLAPSE_STEP_LABELS: readonly string[] = [
@@ -156,32 +179,38 @@ export const COLLAPSE_STEP_LABELS: readonly string[] = [
 
 export async function runFactoryCollapse(
   urls: CollapseUrls,
+  apiKeys: CollapseApiKeys,
   callbacks: CollapseCallbacks,
 ): Promise<void> {
   const steps: Step[] = [
     {
       label: COLLAPSE_STEP_LABELS[0],
       url: urls.materialsF2,
+      apiKey: apiKeys.materialsF2,
       run: depleteRawMaterials,
     },
     {
       label: COLLAPSE_STEP_LABELS[1],
       url: urls.orders,
+      apiKey: apiKeys.orders,
       run: flagOrders,
     },
     {
       label: COLLAPSE_STEP_LABELS[2],
       url: urls.shipments,
+      apiKey: apiKeys.shipments,
       run: delayShipments,
     },
     {
       label: COLLAPSE_STEP_LABELS[3],
       url: urls.support,
+      apiKey: apiKeys.support,
       run: createSupportTicket,
     },
     {
       label: COLLAPSE_STEP_LABELS[4],
       url: urls.erp,
+      apiKey: apiKeys.erp,
       run: breachErpCompliance,
     },
   ];
@@ -193,7 +222,7 @@ export async function runFactoryCollapse(
       if (!step.url) {
         callbacks.onStepError(i, step.label, "URL not configured — skipped");
       } else {
-        await step.run(step.url);
+        await step.run(step.url, step.apiKey);
         callbacks.onStepDone(i, step.label);
       }
     } catch (e) {

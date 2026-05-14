@@ -7,7 +7,11 @@ import { NoNodesView } from "@/components/NoNodesView";
 import { SentinelWatch } from "@/components/SentinelWatch";
 import { TopBar } from "@/components/TopBar";
 import { getNodes } from "@/lib/nodes";
-import type { CollapseUrls, SentinelAlert } from "@/lib/types";
+import type {
+  CollapseApiKeys,
+  CollapseUrls,
+  SentinelAlert,
+} from "@/lib/types";
 import { usePoller } from "@/lib/usePoller";
 
 const ALERT_MAX = 200;
@@ -53,6 +57,20 @@ export default function Page() {
     };
   }, [nodes]);
 
+  const collapseApiKeys = useMemo<CollapseApiKeys>(() => {
+    function findKey(id: string): string | null {
+      const n = nodes.find((x) => x.id === id);
+      return n ? n.apiKey : null;
+    }
+    return {
+      materialsF2: findKey("f2-materials"),
+      orders: findKey("corp-orders"),
+      shipments: findKey("corp-shipments"),
+      support: findKey("corp-support"),
+      erp: findKey("corp-erp"),
+    };
+  }, [nodes]);
+
   const collapsingNodeIds = useMemo(() => {
     return new Set(collapsingNodeId ? [collapsingNodeId] : []);
   }, [collapsingNodeId]);
@@ -83,6 +101,7 @@ export default function Page() {
 
       <CollapseController
         urls={collapseUrls}
+        apiKeys={collapseApiKeys}
         onAlert={handleAlert}
         onCollapsingNodeChange={setCollapsingNodeId}
       />

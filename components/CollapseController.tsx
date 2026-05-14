@@ -6,6 +6,7 @@ import {
   runFactoryCollapse,
 } from "@/lib/collapse";
 import type {
+  CollapseApiKeys,
   CollapseStep,
   CollapseUrls,
   SentinelAlert,
@@ -13,6 +14,7 @@ import type {
 
 interface CollapseControllerProps {
   urls: CollapseUrls;
+  apiKeys: CollapseApiKeys;
   onAlert: (alert: SentinelAlert) => void;
   onCollapsingNodeChange: (nodeId: string | null) => void;
 }
@@ -53,6 +55,7 @@ const stepIconColor: Record<CollapseStep["status"], string> = {
 
 export function CollapseController({
   urls,
+  apiKeys,
   onAlert,
   onCollapsingNodeChange,
 }: CollapseControllerProps) {
@@ -96,7 +99,7 @@ export function CollapseController({
       severity: "critical",
     });
 
-    void runFactoryCollapse(urls, {
+    void runFactoryCollapse(urls, apiKeys, {
       onStepStart: (index, label) => {
         setCurrentIndex(index);
         setSteps((prev) =>
@@ -168,7 +171,7 @@ export function CollapseController({
         });
       },
     });
-  }, [urls, onAlert, onCollapsingNodeChange]);
+  }, [urls, apiKeys, onAlert, onCollapsingNodeChange]);
 
   const completed = steps.filter(
     (s) => s.status === "done" || s.status === "error",
