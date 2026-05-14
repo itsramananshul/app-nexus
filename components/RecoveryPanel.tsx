@@ -1,113 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { runRecovery, RECOVERY_STEP_LABELS } from "@/lib/recovery";
-import type {
-  CollapseApiKeys,
-  CollapseResult,
-  CollapseUrls,
-  SentinelAlert,
-} from "@/lib/types";
 import { IncidentReportModal, type IncidentReport } from "./IncidentReportModal";
 
 interface RecoveryPanelProps {
   report: IncidentReport;
-  result: CollapseResult;
-  urls: CollapseUrls;
-  apiKeys: CollapseApiKeys;
-  onAlert: (alert: SentinelAlert) => void;
-  onRecoveryStart: () => void;
-  onRecoveryComplete: () => void;
-}
-
-function newAlertId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  recovering: boolean;
+  currentLabel: string | null;
+  onTriggerRecovery: () => void;
 }
 
 export function RecoveryPanel({
   report,
-  result,
-  urls,
-  apiKeys,
-  onAlert,
-  onRecoveryStart,
-  onRecoveryComplete,
+  recovering,
+  currentLabel,
+  onTriggerRecovery,
 }: RecoveryPanelProps) {
-  const [running, setRunning] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
-  const [currentLabel, setCurrentLabel] = useState<string | null>(null);
-
-  const handleRecover = () => {
-    if (running) return;
-    setRunning(true);
-    onRecoveryStart();
-    onAlert({
-      id: newAlertId(),
-      timestamp: new Date(),
-      nodeId: "corporate",
-      nodeLabel: "Recovery Protocol",
-      location: "Nexus",
-      type: "collapse_complete",
-      message:
-        "RECOVERY PROTOCOL INITIATED · Reversing cascade · 3 stages projected",
-      severity: "info",
-    });
-    void runRecovery(urls, apiKeys, result, {
-      onStepStart: (i, label) => {
-        setCurrentLabel(label);
-        onAlert({
-          id: newAlertId(),
-          timestamp: new Date(),
-          nodeId: "corporate",
-          nodeLabel: "Recovery",
-          location: "Nexus",
-          type: "collapse_step",
-          message: `Recovery step ${i + 1}/${RECOVERY_STEP_LABELS.length} · ${label}`,
-          severity: "info",
-        });
-      },
-      onStepDone: (i, label) => {
-        onAlert({
-          id: newAlertId(),
-          timestamp: new Date(),
-          nodeId: "corporate",
-          nodeLabel: "Recovery",
-          location: "Nexus",
-          type: "health_recovered",
-          message: `Recovered · ${label}`,
-          severity: "info",
-        });
-      },
-      onStepError: (_i, label, error) => {
-        onAlert({
-          id: newAlertId(),
-          timestamp: new Date(),
-          nodeId: "corporate",
-          nodeLabel: "Recovery",
-          location: "Nexus",
-          type: "collapse_error",
-          message: `Recovery degraded · ${label} — ${error}`,
-          severity: "warning",
-        });
-      },
-      onComplete: () => {
-        setRunning(false);
-        setCurrentLabel(null);
-        onAlert({
-          id: newAlertId(),
-          timestamp: new Date(),
-          nodeId: "corporate",
-          nodeLabel: "Recovery Protocol",
-          location: "Nexus",
-          type: "health_recovered",
-          message:
-            "SYSTEM NOMINAL · All affected nodes restored · Standing by",
-          severity: "info",
-        });
-        onRecoveryComplete();
-      },
-    });
-  };
 
   return (
     <>
@@ -131,7 +40,7 @@ export function RecoveryPanel({
           </dl>
 
           <div className="flex items-center gap-2">
-            {running ? (
+            {recovering ? (
               <span className="rounded-md border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-cyan-300">
                 Recovering · {currentLabel ?? "…"}
               </span>
@@ -139,7 +48,7 @@ export function RecoveryPanel({
               <>
                 <button
                   type="button"
-                  onClick={handleRecover}
+                  onClick={onTriggerRecovery}
                   className="glow-cyan-box inline-flex items-center gap-2 rounded-md border border-cyan-400/40 bg-cyan-500 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-950 shadow-lg hover:bg-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
                 >
                   <span aria-hidden>🔄</span>

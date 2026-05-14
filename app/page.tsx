@@ -9,6 +9,7 @@ import {
 import { NetworkGraph } from "@/components/NetworkGraph";
 import { NexusApiKeysPanel } from "@/components/NexusApiKeysPanel";
 import { NoNodesView } from "@/components/NoNodesView";
+import { PitchMode } from "@/components/PitchMode";
 import { RecoveryPanel } from "@/components/RecoveryPanel";
 import {
   ScenarioController,
@@ -17,7 +18,9 @@ import {
 } from "@/components/ScenarioController";
 import { TopBar } from "@/components/TopBar";
 import type { IncidentReport } from "@/components/IncidentReportModal";
-import { getNodes, type NodeConfig } from "@/lib/nodes";
+import { runFactoryCollapse } from "@/lib/collapse";
+import { runRecovery, RECOVERY_STEP_LABELS } from "@/lib/recovery";
+import { getNodes, primaryMetricFor, type NodeConfig } from "@/lib/nodes";
 import { useNodeKeyOverrides } from "@/lib/nodeKeyOverrides";
 import type {
   CollapseApiKeys,
@@ -98,6 +101,9 @@ export default function Page() {
   const [elapsedMs, setElapsedMs] = useState<number>(0);
   const [peakExposure, setPeakExposure] = useState<number>(0);
   const [collapseResult, setCollapseResult] = useState<CollapseResult | null>(null);
+  const [recovering, setRecovering] = useState(false);
+  const [recoveryLabel, setRecoveryLabel] = useState<string | null>(null);
+  const [pitchActive, setPitchActive] = useState(false);
 
   // Track when the scenario ended so we can hold the exposure ticker
   const completedAtRef = useRef<number | null>(null);
@@ -308,6 +314,116 @@ export default function Page() {
     scenarioState === "complete" ||
     scenarioState === "recovering";
 
+  // Sum of primary metric values across the 4 factories (raw materials +
+  // product inventory at each factory) — what the pitch deck calls "parts
+  // tracked across 4 factories".
+  const partsTracked = useMemo(() => {
+    let total = 0;
+    for (const node of nodes) {
+      if (!node.location.startsWith("Factory ")) continue;
+      const status = statuses.get(node.id);
+      if (!status?.details) continue;
+      const { value } = primaryMetricFor(node.type, status.details);
+      if (typeof value === "number") total += value;
+    }
+    return total;
+  }, [nodes, statuses]);
+
+  // Trigger functions — lifted out of ScenarioController / RecoveryPanel so
+  // PitchMode can fire them too.
+  const triggerCollapse = useCallback(() => {
+    setSteps(INITIAL_STEPS.map((s) => ({ ...s })));
+    setCurrentStage(0);
+    setScenarioStartedAt(Date.now());
+    setElapsedMs(0);
+    setPeakExposure(0);
+    setCollapseResult(null);
+    completedAtRef.current = null;
+    setScenarioState("executing");
+    void runFactoryCollapse(collapseUrls, collapseApiKeys, {
+      onStepStart,
+      onStepDone,
+      onStepError,
+      onComplete,
+    });
+  }, [
+    collapseUrls,
+    collapseApiKeys,
+    onStepStart,
+    onStepDone,
+    onStepError,
+    onComplete,
+  ]);
+
+  const triggerRecovery = useCallback(() => {
+    if (!collapseResult) return;
+    handleRecoveryStart();
+    setRecovering(true);
+    setRecoveryLabel(null);
+    void runRecovery(collapseUrls, collapseApiKeys, collapseResult, {
+      onStepStart: (i, label) => {
+        setRecoveryLabel(label);
+        handleAlert({
+          id: newAlertId(),
+          timestamp: new Date(),
+          nodeId: "corporate",
+          nodeLabel: "Recovery",
+          location: "Nexus",
+          type: "collapse_step",
+          message: `Recovery ${i + 1}/${RECOVERY_STEP_LABELS.length} · ${label}`,
+          severity: "info",
+        });
+      },
+      onStepDone: (_i, label) => {
+        handleAlert({
+          id: newAlertId(),
+          timestamp: new Date(),
+          nodeId: "corporate",
+          nodeLabel: "Recovery",
+          location: "Nexus",
+          type: "health_recovered",
+          message: `Recovered · ${label}`,
+          severity: "info",
+        });
+      },
+      onStepError: (_i, label, error) => {
+        handleAlert({
+          id: newAlertId(),
+          timestamp: new Date(),
+          nodeId: "corporate",
+          nodeLabel: "Recovery",
+          location: "Nexus",
+          type: "collapse_error",
+          message: `Recovery degraded · ${label} — ${error}`,
+          severity: "warning",
+        });
+      },
+      onComplete: () => {
+        setRecovering(false);
+        setRecoveryLabel(null);
+        handleAlert({
+          id: newAlertId(),
+          timestamp: new Date(),
+          nodeId: "corporate",
+          nodeLabel: "Recovery Protocol",
+          location: "Nexus",
+          type: "health_recovered",
+          message:
+            "SYSTEM NOMINAL · All affected nodes restored · Standing by",
+          severity: "info",
+        });
+        handleRecoveryComplete();
+      },
+    });
+  }, [
+    collapseResult,
+    collapseUrls,
+    collapseApiKeys,
+    handleAlert,
+    handleRecoveryStart,
+    handleRecoveryComplete,
+  ]);
+
   const incidentReport: IncidentReport | null = useMemo(() => {
     if (scenarioState === "idle") return null;
     const endedAt =
@@ -357,6 +473,7 @@ export default function Page() {
         statuses={statuses}
         activeAlerts={activeAlerts}
         onOpenApiKeys={() => setKeysPanelOpen(true)}
+        onStartPitch={() => setPitchActive(true)}
       />
 
       <main className="flex-1 overflow-hidden">
@@ -387,15 +504,12 @@ export default function Page() {
         </div>
       </main>
 
-      {scenarioState === "complete" && incidentReport && collapseResult ? (
+      {(scenarioState === "complete" || scenarioState === "recovering" || scenarioState === "nominal") && incidentReport ? (
         <RecoveryPanel
           report={incidentReport}
-          result={collapseResult}
-          urls={collapseUrls}
-          apiKeys={collapseApiKeys}
-          onAlert={handleAlert}
-          onRecoveryStart={handleRecoveryStart}
-          onRecoveryComplete={handleRecoveryComplete}
+          recovering={recovering}
+          currentLabel={recoveryLabel}
+          onTriggerRecovery={triggerRecovery}
         />
       ) : (
         <ScenarioController
@@ -403,14 +517,9 @@ export default function Page() {
           steps={steps}
           currentStage={Math.max(0, currentStage)}
           elapsedSec={elapsedMs / 1000}
-          urls={collapseUrls}
-          apiKeys={collapseApiKeys}
           onAlert={handleAlert}
           onStateChange={handleStateChange}
-          onStepStart={onStepStart}
-          onStepDone={onStepDone}
-          onStepError={onStepError}
-          onComplete={onComplete}
+          onTriggerCollapse={triggerCollapse}
           onReset={handleReset}
         />
       )}
@@ -422,6 +531,17 @@ export default function Page() {
         overrides={overrides}
         onSetOverride={setOverride}
         onClearOverride={clearOverride}
+      />
+
+      <PitchMode
+        active={pitchActive}
+        onClose={() => setPitchActive(false)}
+        partsTracked={partsTracked}
+        peakExposure={peakExposure}
+        scenarioState={scenarioState}
+        scenarioSteps={steps}
+        onTriggerCollapse={triggerCollapse}
+        onTriggerRecovery={triggerRecovery}
       />
     </div>
   );

@@ -1,17 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  COLLAPSE_STEP_LABELS,
-  runFactoryCollapse,
-} from "@/lib/collapse";
-import type {
-  CollapseApiKeys,
-  CollapseResult,
-  CollapseStep,
-  CollapseUrls,
-  SentinelAlert,
-} from "@/lib/types";
+import { COLLAPSE_STEP_LABELS } from "@/lib/collapse";
+import type { CollapseStep, SentinelAlert } from "@/lib/types";
 
 export type ScenarioState =
   | "idle"
@@ -26,14 +17,9 @@ interface ScenarioControllerProps {
   steps: CollapseStep[];
   currentStage: number;
   elapsedSec: number;
-  urls: CollapseUrls;
-  apiKeys: CollapseApiKeys;
   onAlert: (alert: SentinelAlert) => void;
   onStateChange: (state: ScenarioState) => void;
-  onStepStart: (index: number, label: string) => void;
-  onStepDone: (index: number, label: string) => void;
-  onStepError: (index: number, label: string, error: string) => void;
-  onComplete: (result: CollapseResult) => void;
+  onTriggerCollapse: () => void;
   onReset: () => void;
 }
 
@@ -60,14 +46,9 @@ export function ScenarioController({
   steps,
   currentStage,
   elapsedSec,
-  urls,
-  apiKeys,
   onAlert,
   onStateChange,
-  onStepStart,
-  onStepDone,
-  onStepError,
-  onComplete,
+  onTriggerCollapse,
   onReset,
 }: ScenarioControllerProps) {
   const [selectedScenario, setSelectedScenario] = useState<string>(
@@ -100,7 +81,6 @@ export function ScenarioController({
   };
 
   const handleConfirm = () => {
-    onStateChange("executing");
     onAlert({
       id: newAlertId(),
       timestamp: new Date(),
@@ -112,20 +92,7 @@ export function ScenarioController({
         "SCENARIO INITIATED · Factory 2 Supply Disruption · Cascade propagation imminent",
       severity: "critical",
     });
-    void runFactoryCollapse(urls, apiKeys, {
-      onStepStart: (i, label) => {
-        onStepStart(i, label);
-      },
-      onStepDone: (i, label) => {
-        onStepDone(i, label);
-      },
-      onStepError: (i, label, err) => {
-        onStepError(i, label, err);
-      },
-      onComplete: (result) => {
-        onComplete(result);
-      },
-    });
+    onTriggerCollapse();
   };
 
   const handleCancel = () => {

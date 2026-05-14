@@ -8,6 +8,7 @@ interface TopBarProps {
   statuses: Map<string, NodeStatus>;
   activeAlerts: number;
   onOpenApiKeys: () => void;
+  onStartPitch: () => void;
 }
 
 function formatTime(d: Date): string {
@@ -24,6 +25,7 @@ export function TopBar({
   statuses,
   activeAlerts,
   onOpenApiKeys,
+  onStartPitch,
 }: TopBarProps) {
   const [clock, setClock] = useState<Date>(new Date());
 
@@ -100,6 +102,16 @@ export function TopBar({
               {formatTime(clock)}
             </span>
           </div>
+          <button
+            type="button"
+            onClick={onStartPitch}
+            aria-label="Pitch Mode"
+            title="Start Pitch Mode (presenter overlay)"
+            className="inline-flex items-center gap-1.5 rounded-md border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300 hover:border-cyan-400 hover:bg-cyan-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+          >
+            <span aria-hidden>▶</span>
+            Pitch Mode
+          </button>
           <button
             type="button"
             onClick={onOpenApiKeys}
