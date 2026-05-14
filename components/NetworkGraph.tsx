@@ -21,7 +21,7 @@ interface NetworkGraphProps {
 type NodePos = { x: number; y: number };
 
 const NODE_W = 150;
-const NODE_H = 80;
+const NODE_H = 88;
 
 const POSITIONS: Record<string, NodePos> = {
   // Top — Factory 1 + Factory 3
@@ -175,6 +175,7 @@ export function NetworkGraph({
             width="1200"
             height="720"
             className="absolute inset-0"
+            style={{ zIndex: 0 }}
             preserveAspectRatio="xMidYMid meet"
           >
             <defs>
@@ -417,8 +418,14 @@ function NodeCard({
 
   return (
     <div
-      className={`absolute rounded-md border bg-[#0a1322]/95 px-2.5 py-1.5 transition-shadow ${borderCls} ${glowCls}`}
-      style={{ left: pos.x, top: pos.y, width: NODE_W, height: NODE_H }}
+      className={`absolute overflow-hidden rounded-md border bg-[#0a1322]/95 px-2.5 py-1.5 transition-shadow ${borderCls} ${glowCls}`}
+      style={{
+        left: pos.x,
+        top: pos.y,
+        width: NODE_W,
+        height: NODE_H,
+        zIndex: 1,
+      }}
     >
       <div className="flex items-center justify-between gap-1.5">
         <div className="flex items-center gap-1.5 min-w-0">
@@ -438,7 +445,7 @@ function NodeCard({
         />
       </div>
       <div className="mt-1 flex items-center justify-between gap-1.5">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1 truncate">
           {primary.value !== null ? (
             <span className="font-mono text-[14px] font-bold leading-none tabular-nums text-cyan-300">
               {primary.value}
@@ -458,7 +465,7 @@ function NodeCard({
             </span>
           ) : null}
         </div>
-        <span className="font-mono text-[8px] tabular-nums text-slate-500">
+        <span className="shrink-0 font-mono text-[8px] tabular-nums text-slate-500">
           {ago}
         </span>
       </div>
@@ -486,9 +493,20 @@ interface SparklineProps {
 function Sparkline({ values, tone }: SparklineProps) {
   const W = 60;
   const H = 14;
+  const Y_MIN = 2;
+  const Y_MAX = H - 2;
+  const X_MAX = W - 2;
+  const svgStyle = { display: "block" as const, overflow: "hidden" as const };
+
   if (values.length < 2) {
     return (
-      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} aria-hidden>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        width={W}
+        height={H}
+        style={svgStyle}
+        aria-hidden
+      >
         <line
           x1="0"
           y1={H - 1}
@@ -503,18 +521,24 @@ function Sparkline({ values, tone }: SparklineProps) {
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = Math.max(1, max - min);
-  const step = W / (values.length - 1);
+  const step = X_MAX / (values.length - 1);
+  const clampY = (v: number) => {
+    const raw = Y_MAX - ((v - min) / range) * (Y_MAX - Y_MIN);
+    return Math.max(Y_MIN, Math.min(Y_MAX, raw));
+  };
   const points = values
-    .map((v, i) => {
-      const x = i * step;
-      const y = H - 1 - ((v - min) / range) * (H - 2);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
+    .map((v, i) => `${(i * step).toFixed(1)},${clampY(v).toFixed(1)}`)
     .join(" ");
   const lastX = (values.length - 1) * step;
-  const lastY = H - 1 - ((values[values.length - 1] - min) / range) * (H - 2);
+  const lastY = clampY(values[values.length - 1]);
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} aria-hidden>
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      width={W}
+      height={H}
+      style={svgStyle}
+      aria-hidden
+    >
       <polyline
         fill="none"
         stroke={tone}
