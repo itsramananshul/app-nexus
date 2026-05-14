@@ -19,8 +19,6 @@ function previewKey(raw: string): string {
 interface RowState {
   editing: boolean;
   value: string;
-  generating: boolean;
-  error: string | null;
 }
 
 export function NexusApiKeysPanel({
@@ -57,45 +55,12 @@ export function NexusApiKeysPanel({
 
   function patch(nodeId: string, p: Partial<RowState>): void {
     setRowState((prev) => {
-      const defaults: RowState = {
-        editing: false,
-        value: "",
-        generating: false,
-        error: null,
-      };
+      const defaults: RowState = { editing: false, value: "" };
       return {
         ...prev,
         [nodeId]: { ...defaults, ...prev[nodeId], ...p },
       };
     });
-  }
-
-  async function handleGenerate(node: NodeConfig) {
-    patch(node.id, { generating: true, error: null });
-    try {
-      const res = await fetch(`${node.url}/api/keys`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: `nexus-${new Date().toISOString()}` }),
-      });
-      const body = (await res.json().catch(() => null)) as
-        | { success?: boolean; error?: string; rawKey?: string }
-        | null;
-      if (!res.ok || body?.success !== true || typeof body.rawKey !== "string") {
-        throw new Error(body?.error ?? `Request failed (HTTP ${res.status})`);
-      }
-      onSetOverride(node.id, body.rawKey);
-      patch(node.id, {
-        generating: false,
-        editing: false,
-        value: "",
-      });
-    } catch (e) {
-      patch(node.id, {
-        generating: false,
-        error: e instanceof Error ? e.message : "Generate failed",
-      });
-    }
   }
 
   if (!open) return null;
@@ -123,10 +88,9 @@ export function NexusApiKeysPanel({
             </h2>
             <p className="mt-1 text-xs text-slate-400">
               One key per monitored node, sent as{" "}
-              <code className="text-slate-300">x-api-key</code> on every poll
-              and on every collapse mutation. Generate a key in each
-              backend&apos;s 🔑 panel and paste it here — keys live in this
-              browser&apos;s localStorage.
+              <code className="text-slate-300">x-api-key</code> on collapse
+              mutations only. Generate a key in each backend&apos;s 🔑 panel
+              and paste it here.
             </p>
           </div>
           <button
@@ -153,8 +117,6 @@ export function NexusApiKeysPanel({
                   const state: RowState = rowState[node.id] ?? {
                     editing: false,
                     value: "",
-                    generating: false,
-                    error: null,
                   };
                   return (
                     <li
@@ -191,15 +153,6 @@ export function NexusApiKeysPanel({
                               Edit
                             </button>
                           ) : null}
-                          <button
-                            type="button"
-                            disabled={state.generating}
-                            onClick={() => void handleGenerate(node)}
-                            className="rounded-md bg-sky-500/10 px-2.5 py-1 text-xs font-medium text-sky-300 ring-1 ring-inset ring-sky-500/30 hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                            title="Generate a new key on this app and use it"
-                          >
-                            {state.generating ? "Generating…" : "Generate new"}
-                          </button>
                           {overrides[node.id] ? (
                             <button
                               type="button"
@@ -254,12 +207,6 @@ export function NexusApiKeysPanel({
                             Cancel
                           </button>
                         </form>
-                      ) : null}
-
-                      {state.error ? (
-                        <div className="mt-2 rounded-md bg-rose-500/10 px-2 py-1 text-[11px] text-rose-300 ring-1 ring-inset ring-rose-500/30">
-                          {state.error}
-                        </div>
                       ) : null}
                     </li>
                   );
