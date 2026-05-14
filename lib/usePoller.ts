@@ -19,9 +19,12 @@ async function pollNode(node: NodeConfig): Promise<NodeStatus> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), POLL_TIMEOUT_MS);
   try {
+    const headers: Record<string, string> = {};
+    if (node.apiKey) headers["x-api-key"] = node.apiKey;
     const res = await fetch(`${node.url}/api/status`, {
       cache: "no-store",
       signal: controller.signal,
+      headers,
     });
     if (!res.ok) {
       return {
