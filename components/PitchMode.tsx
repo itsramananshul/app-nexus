@@ -264,16 +264,16 @@ function SidePanel({
 }) {
   return (
     <>
-      {/* Block clicks on the underlying network graph area */}
+      {/* Block clicks on the underlying network graph area (right of the panel) */}
       <div
-        className="fixed inset-y-0 left-0 right-[30%] z-40 bg-transparent"
+        className="fixed inset-y-0 left-[clamp(0px,30vw,380px)] right-0 z-40 bg-transparent"
         aria-hidden
       />
       <aside
         role="dialog"
         aria-modal="true"
         aria-label="Pitch mode"
-        className="panel-enter fixed inset-y-0 right-0 z-50 flex w-[30%] min-w-[380px] max-w-[480px] flex-col border-l border-cyan-500/30 bg-[#070b16]/98 shadow-2xl backdrop-blur-md"
+        className="panel-enter-left fixed inset-y-0 left-0 z-50 flex w-[30vw] max-w-[380px] flex-col border-r border-cyan-500/30 bg-[#070b16]/98 shadow-2xl backdrop-blur-md"
       >
         <header className="flex items-center justify-between border-b border-slate-800/60 px-5 py-4">
           <div>

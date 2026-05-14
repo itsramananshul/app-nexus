@@ -90,7 +90,8 @@ export default function Page() {
   const [now, setNow] = useState<Date>(new Date());
   const [keysPanelOpen, setKeysPanelOpen] = useState(false);
 
-  const { overrides, setOverride, clearOverride } = useNodeKeyOverrides();
+  const { overrides, setOverride, clearOverride, isLoaded: keysLoaded } =
+    useNodeKeyOverrides();
 
   // Scenario state machine
   const [scenarioState, setScenarioState] = useState<ScenarioState>("idle");
@@ -123,7 +124,10 @@ export default function Page() {
     setAlerts((prev) => [alert, ...prev].slice(0, ALERT_MAX));
   }, []);
 
-  const statuses = usePoller(nodes, handleAlert);
+  // Don't start polling until the per-node keys finish loading from Supabase —
+  // this prevents the 401 flicker on first load while keys are still hydrating.
+  const pollingNodes = keysLoaded ? nodes : [];
+  const statuses = usePoller(pollingNodes, handleAlert);
 
   // 1Hz tick for clock, "Xs ago" labels, scenario elapsed counter
   useEffect(() => {
@@ -484,6 +488,7 @@ export default function Page() {
               statuses={statuses}
               collapsingNodeIds={collapsingNodeIds}
               now={now}
+              isLoadingKeys={!keysLoaded}
             />
             <AlertFeed alerts={alerts} />
           </div>

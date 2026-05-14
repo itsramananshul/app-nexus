@@ -131,6 +131,21 @@ body {
   animation: panel-in 0.4s ease-out;
 }
 
+/* === Panel slide-in from left === */
+@keyframes panel-in-left {
+  from {
+    transform: translateX(-24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+.panel-enter-left {
+  animation: panel-in-left 0.4s ease-out;
+}
+
 /* === Scanline / mission-control vibe on big titles === */
 @keyframes scanline {
   0% {

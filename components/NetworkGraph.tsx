@@ -14,6 +14,7 @@ interface NetworkGraphProps {
   statuses: Map<string, NodeStatus>;
   collapsingNodeIds: Set<string>;
   now: Date;
+  isLoadingKeys?: boolean;
 }
 
 type NodePos = { x: number; y: number };
@@ -114,6 +115,7 @@ export function NetworkGraph({
   statuses,
   collapsingNodeIds,
   now,
+  isLoadingKeys = false,
 }: NetworkGraphProps) {
   const byId = useMemo(() => {
     const m = new Map<string, NodeConfig>();
@@ -151,7 +153,14 @@ export function NetworkGraph({
             Supply Network · Topology
           </h2>
           <p className="text-[10px] text-slate-500">
-            {nodes.length} nodes · live telemetry
+            {isLoadingKeys ? (
+              <span className="inline-flex items-center gap-1.5 text-amber-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 pulse-live" />
+                Loading configuration…
+              </span>
+            ) : (
+              `${nodes.length} nodes · live telemetry`
+            )}
           </p>
         </div>
         <Legend />
@@ -326,6 +335,7 @@ export function NetworkGraph({
                 pos={pos}
                 collapsing={collapsing}
                 hasKey={!!node.apiKey}
+                loading={isLoadingKeys}
                 ago={fmtAgo(now, status?.lastChecked)}
               />
             );
@@ -342,10 +352,19 @@ interface NodeCardProps {
   pos: NodePos;
   collapsing: boolean;
   hasKey: boolean;
+  loading: boolean;
   ago: string;
 }
 
-function NodeCard({ node, status, pos, collapsing, hasKey, ago }: NodeCardProps) {
+function NodeCard({
+  node,
+  status,
+  pos,
+  collapsing,
+  hasKey,
+  loading,
+  ago,
+}: NodeCardProps) {
   const health = status?.health;
   const noKey = !hasKey;
 
@@ -353,7 +372,12 @@ function NodeCard({ node, status, pos, collapsing, hasKey, ago }: NodeCardProps)
   let glowCls = "";
   let dotCls = "bg-slate-500";
   let stateLabel = "—";
-  if (noKey) {
+  if (loading) {
+    borderCls = "border-slate-700/40 border-dashed";
+    glowCls = "opacity-60";
+    dotCls = "bg-slate-500 pulse-live";
+    stateLabel = "LOADING";
+  } else if (noKey) {
     borderCls = "border-slate-700/50 border-dashed";
     dotCls = "bg-slate-500";
     stateLabel = "NO KEY";
@@ -416,7 +440,11 @@ function NodeCard({ node, status, pos, collapsing, hasKey, ago }: NodeCardProps)
             </span>
           ) : (
             <span className="font-mono text-[10px] text-slate-500">
-              {stateLabel === "NO KEY" ? "Add key →" : "—"}
+              {stateLabel === "LOADING"
+                ? "Loading…"
+                : stateLabel === "NO KEY"
+                  ? "Add key →"
+                  : "—"}
             </span>
           )}
           {secondary ? (
