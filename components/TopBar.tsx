@@ -10,6 +10,8 @@ interface TopBarProps {
   nodesWithoutKey: number;
   collapsingNodeIds: Set<string>;
   activeAlerts: number;
+  eraMode: "before" | "after";
+  onChangeEra: (era: "before" | "after") => void;
   onOpenApiKeys: () => void;
   onStartPitch: () => void;
   onResetDemo: () => void;
@@ -30,6 +32,8 @@ export function TopBar({
   nodesWithoutKey,
   collapsingNodeIds,
   activeAlerts,
+  eraMode,
+  onChangeEra,
   onOpenApiKeys,
   onStartPitch,
   onResetDemo,
@@ -137,6 +141,37 @@ export function TopBar({
 
         {/* Right — action buttons */}
         <div className="flex items-center gap-2">
+          {/* Before / After era toggle */}
+          <div
+            className="inline-flex overflow-hidden rounded-md border border-amber-500/30 bg-slate-900/60 text-[9px] font-semibold uppercase tracking-[0.2em]"
+            role="group"
+            aria-label="View era"
+          >
+            <button
+              type="button"
+              onClick={() => onChangeEra("before")}
+              aria-pressed={eraMode === "before"}
+              className={`px-2.5 py-1.5 transition-colors ${
+                eraMode === "before"
+                  ? "bg-amber-500/20 text-amber-300"
+                  : "text-slate-500 hover:bg-slate-800/60 hover:text-slate-300"
+              }`}
+            >
+              Before
+            </button>
+            <button
+              type="button"
+              onClick={() => onChangeEra("after")}
+              aria-pressed={eraMode === "after"}
+              className={`border-l border-amber-500/30 px-2.5 py-1.5 transition-colors ${
+                eraMode === "after"
+                  ? "bg-cyan-500/20 text-cyan-300"
+                  : "text-slate-500 hover:bg-slate-800/60 hover:text-slate-300"
+              }`}
+            >
+              After
+            </button>
+          </div>
           <button
             type="button"
             onClick={onStartPitch}

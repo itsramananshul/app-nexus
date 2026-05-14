@@ -6,6 +6,8 @@ import {
   BlastRadiusPanel,
   type AffectedNode,
 } from "@/components/BlastRadiusPanel";
+import { FactoryMap } from "@/components/FactoryMap";
+import { LegacyView } from "@/components/LegacyView";
 import { NetworkGraph } from "@/components/NetworkGraph";
 import { NexusApiKeysPanel } from "@/components/NexusApiKeysPanel";
 import { NoNodesView } from "@/components/NoNodesView";
@@ -116,6 +118,9 @@ export default function Page() {
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [resetBusy, setResetBusy] = useState(false);
   const [resetToast, setResetToast] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"graph" | "map">("graph");
+  const [eraMode, setEraMode] = useState<"after" | "before">("after");
+  const [transitionToast, setTransitionToast] = useState<string | null>(null);
 
   // Track when the scenario ended so we can hold the exposure ticker
   const completedAtRef = useRef<number | null>(null);
@@ -364,6 +369,13 @@ export default function Page() {
     return () => clearTimeout(id);
   }, [resetToast]);
 
+  // Auto-dismiss the era-transition reveal after 2.5s
+  useEffect(() => {
+    if (!transitionToast) return;
+    const id = setTimeout(() => setTransitionToast(null), 2500);
+    return () => clearTimeout(id);
+  }, [transitionToast]);
+
   const collapseUrls = useMemo<CollapseUrls>(() => {
     function find(id: string): string | null {
       const n = nodes.find((x) => x.id === id);
@@ -569,22 +581,73 @@ export default function Page() {
         nodesWithoutKey={nodes.filter((n) => !n.apiKey).length}
         collapsingNodeIds={collapsingNodeIds}
         activeAlerts={activeAlerts}
+        eraMode={eraMode}
+        onChangeEra={(next) => {
+          // Brief reveal overlay when switching back to the modern view
+          if (next === "after" && eraMode === "before") {
+            setTransitionToast("This is what OpenPrem replaces.");
+          }
+          setEraMode(next);
+        }}
         onOpenApiKeys={() => setKeysPanelOpen(true)}
         onStartPitch={() => setPitchActive(true)}
         onResetDemo={handleResetDemo}
       />
 
+      {eraMode === "before" ? (
+        <main className="flex-1 overflow-hidden">
+          <LegacyView />
+        </main>
+      ) : (
       <main className="flex-1 overflow-hidden">
         <div className="mx-auto flex h-full max-w-[1600px] gap-3 px-4 py-3">
-          <div className="grid h-full flex-1 grid-cols-1 gap-3 lg:grid-cols-[62fr_38fr]">
-            <NetworkGraph
-              nodes={nodes}
-              statuses={statuses}
-              collapsingNodeIds={collapsingNodeIds}
-              now={now}
-              isLoadingKeys={!keysLoaded}
-              history={history}
-            />
+          <div className="relative grid h-full flex-1 grid-cols-1 gap-3 lg:grid-cols-[62fr_38fr]">
+            {/* View toggle — floating top-right of the network panel */}
+            <div className="absolute right-3 top-3 z-20 inline-flex overflow-hidden rounded-md border border-cyan-500/30 bg-[#070b16]/95 text-[10px] font-semibold uppercase tracking-[0.2em] shadow-lg backdrop-blur">
+              <button
+                type="button"
+                onClick={() => setViewMode("graph")}
+                aria-pressed={viewMode === "graph"}
+                className={`px-3 py-1.5 transition-colors ${
+                  viewMode === "graph"
+                    ? "bg-cyan-500/20 text-cyan-200"
+                    : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+                }`}
+              >
+                <span aria-hidden>⬡</span> Network
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("map")}
+                aria-pressed={viewMode === "map"}
+                className={`border-l border-cyan-500/30 px-3 py-1.5 transition-colors ${
+                  viewMode === "map"
+                    ? "bg-cyan-500/20 text-cyan-200"
+                    : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+                }`}
+              >
+                <span aria-hidden>🗺</span> Map
+              </button>
+            </div>
+
+            {viewMode === "graph" ? (
+              <NetworkGraph
+                nodes={nodes}
+                statuses={statuses}
+                collapsingNodeIds={collapsingNodeIds}
+                now={now}
+                isLoadingKeys={!keysLoaded}
+                history={history}
+              />
+            ) : (
+              <FactoryMap
+                nodes={nodes}
+                statuses={statuses}
+                collapsingNodeIds={collapsingNodeIds}
+                isLoadingKeys={!keysLoaded}
+                history={history}
+              />
+            )}
             <AlertFeed alerts={alerts} />
           </div>
           {blastOpen ? (
@@ -603,26 +666,32 @@ export default function Page() {
           ) : null}
         </div>
       </main>
-
-      {(scenarioState === "complete" || scenarioState === "recovering" || scenarioState === "nominal") && incidentReport ? (
-        <RecoveryPanel
-          report={incidentReport}
-          recovering={recovering}
-          currentLabel={recoveryLabel}
-          onTriggerRecovery={triggerRecovery}
-        />
-      ) : (
-        <ScenarioController
-          state={scenarioState}
-          steps={steps}
-          currentStage={Math.max(0, currentStage)}
-          elapsedSec={elapsedMs / 1000}
-          onAlert={handleAlert}
-          onStateChange={handleStateChange}
-          onTriggerCollapse={triggerCollapse}
-          onReset={handleReset}
-        />
       )}
+
+      {eraMode === "after" ? (
+        (scenarioState === "complete" ||
+          scenarioState === "recovering" ||
+          scenarioState === "nominal") &&
+        incidentReport ? (
+          <RecoveryPanel
+            report={incidentReport}
+            recovering={recovering}
+            currentLabel={recoveryLabel}
+            onTriggerRecovery={triggerRecovery}
+          />
+        ) : (
+          <ScenarioController
+            state={scenarioState}
+            steps={steps}
+            currentStage={Math.max(0, currentStage)}
+            elapsedSec={elapsedMs / 1000}
+            onAlert={handleAlert}
+            onStateChange={handleStateChange}
+            onTriggerCollapse={triggerCollapse}
+            onReset={handleReset}
+          />
+        )
+      ) : null}
 
       <NexusApiKeysPanel
         open={keysPanelOpen}
@@ -698,6 +767,18 @@ export default function Page() {
             {resetToast.startsWith("Reset failed") ? "✗ Reset failed" : "✓ Reset complete"}
           </p>
           <p className="mt-1 text-xs text-slate-300">{resetToast}</p>
+        </div>
+      ) : null}
+
+      {transitionToast ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="alert-enter fixed inset-0 z-[80] flex items-center justify-center bg-[#020409]/60 backdrop-blur-sm pointer-events-none"
+        >
+          <p className="glow-cyan rounded-lg border border-cyan-400/40 bg-[#0a1322]/95 px-8 py-5 text-center text-xl font-semibold tracking-wide text-cyan-200 shadow-2xl">
+            {transitionToast}
+          </p>
         </div>
       ) : null}
     </div>
