@@ -21,6 +21,7 @@ import { getNodes, type NodeConfig } from "@/lib/nodes";
 import { useNodeKeyOverrides } from "@/lib/nodeKeyOverrides";
 import type {
   CollapseApiKeys,
+  CollapseResult,
   CollapseStep,
   CollapseUrls,
   SentinelAlert,
@@ -38,9 +39,9 @@ const INITIAL_STEPS: CollapseStep[] = SCENARIO_STAGE_LABELS.map((label, i) => ({
 const STEP_TO_NODE: Record<number, { id: string; label: string; location: string }> = {
   0: { id: "f2-materials", label: "Raw Materials", location: "Factory 2" },
   1: { id: "f2-product", label: "Product Inventory", location: "Factory 2" },
-  2: { id: "w1-product", label: "Warehouse 1", location: "Warehouse 1" },
-  3: { id: "w2-product", label: "Warehouse 2", location: "Warehouse 2" },
-  4: { id: "corp-erp", label: "ERP System", location: "Corporate" },
+  2: { id: "corp-orders", label: "Orders", location: "Corporate" },
+  3: { id: "corp-shipments", label: "Shipments", location: "Corporate" },
+  4: { id: "corp-support", label: "Support Tickets", location: "Corporate" },
 };
 
 const SCENARIO_AFFECTED: AffectedNode[] = [
@@ -96,6 +97,7 @@ export default function Page() {
   const [scenarioStartedAt, setScenarioStartedAt] = useState<number>(0);
   const [elapsedMs, setElapsedMs] = useState<number>(0);
   const [peakExposure, setPeakExposure] = useState<number>(0);
+  const [collapseResult, setCollapseResult] = useState<CollapseResult | null>(null);
 
   // Track when the scenario ended so we can hold the exposure ticker
   const completedAtRef = useRef<number | null>(null);
@@ -203,22 +205,25 @@ export default function Page() {
     [handleAlert],
   );
 
-  const onComplete = useCallback(() => {
-    setCollapsingNodeId(null);
-    completedAtRef.current = Date.now();
-    setScenarioState("complete");
-    handleAlert({
-      id: newAlertId(),
-      timestamp: new Date(),
-      nodeId: "corporate",
-      nodeLabel: "Reality Engine",
-      location: "Nexus",
-      type: "collapse_complete",
-      message:
-        "CASCADE COMPLETE · 8 nodes affected · Recovery protocol available",
-      severity: "critical",
-    });
-  }, [handleAlert]);
+  const onComplete = useCallback(
+    (result: CollapseResult) => {
+      setCollapsingNodeId(null);
+      completedAtRef.current = Date.now();
+      setCollapseResult(result);
+      setScenarioState("complete");
+      handleAlert({
+        id: newAlertId(),
+        timestamp: new Date(),
+        nodeId: "corporate",
+        nodeLabel: "Reality Engine",
+        location: "Nexus",
+        type: "collapse_complete",
+        message: `CASCADE COMPLETE · ${result.drainedMaterials.length} materials · ${result.drainedProducts.length} SKUs · ${result.createdOrderIds.length} new orders · ${result.delayedShipmentIds.length} shipments delayed · ${result.createdTicketIds.length} incidents opened`,
+        severity: "critical",
+      });
+    },
+    [handleAlert],
+  );
 
   const handleStateChange = useCallback((next: ScenarioState) => {
     if (next === "executing") {
@@ -228,6 +233,7 @@ export default function Page() {
       setScenarioStartedAt(Date.now());
       setElapsedMs(0);
       setPeakExposure(0);
+      setCollapseResult(null);
       completedAtRef.current = null;
     }
     setScenarioState(next);
@@ -240,6 +246,7 @@ export default function Page() {
     setElapsedMs(0);
     setPeakExposure(0);
     setCollapsingNodeId(null);
+    setCollapseResult(null);
   }, []);
 
   const handleRecoveryStart = useCallback(() => {
@@ -264,11 +271,11 @@ export default function Page() {
       return n ? n.url : null;
     }
     return {
-      materialsF2: find("f2-materials"),
-      orders: find("corp-orders"),
-      shipments: find("corp-shipments"),
-      support: find("corp-support"),
-      erp: find("corp-erp"),
+      invF2: find("f2-product"),
+      matF2: find("f2-materials"),
+      ord: find("corp-orders"),
+      shp: find("corp-shipments"),
+      sup: find("corp-support"),
     };
   }, [nodes]);
 
@@ -278,11 +285,11 @@ export default function Page() {
       return n ? n.apiKey : null;
     }
     return {
-      materialsF2: findKey("f2-materials"),
-      orders: findKey("corp-orders"),
-      shipments: findKey("corp-shipments"),
-      support: findKey("corp-support"),
-      erp: findKey("corp-erp"),
+      invF2Key: findKey("f2-product"),
+      matF2Key: findKey("f2-materials"),
+      ordKey: findKey("corp-orders"),
+      shpKey: findKey("corp-shipments"),
+      supKey: findKey("corp-support"),
     };
   }, [nodes]);
 
@@ -380,9 +387,10 @@ export default function Page() {
         </div>
       </main>
 
-      {scenarioState === "complete" && incidentReport ? (
+      {scenarioState === "complete" && incidentReport && collapseResult ? (
         <RecoveryPanel
           report={incidentReport}
+          result={collapseResult}
           urls={collapseUrls}
           apiKeys={collapseApiKeys}
           onAlert={handleAlert}

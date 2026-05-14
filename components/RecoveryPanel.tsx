@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { runRecovery, RECOVERY_STEP_LABELS } from "@/lib/recovery";
 import type {
   CollapseApiKeys,
+  CollapseResult,
   CollapseUrls,
   SentinelAlert,
 } from "@/lib/types";
@@ -11,6 +12,7 @@ import { IncidentReportModal, type IncidentReport } from "./IncidentReportModal"
 
 interface RecoveryPanelProps {
   report: IncidentReport;
+  result: CollapseResult;
   urls: CollapseUrls;
   apiKeys: CollapseApiKeys;
   onAlert: (alert: SentinelAlert) => void;
@@ -24,6 +26,7 @@ function newAlertId(): string {
 
 export function RecoveryPanel({
   report,
+  result,
   urls,
   apiKeys,
   onAlert,
@@ -33,12 +36,6 @@ export function RecoveryPanel({
   const [running, setRunning] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [currentLabel, setCurrentLabel] = useState<string | null>(null);
-
-  useEffect(() => {
-    return () => {
-      // no cleanup needed
-    };
-  }, []);
 
   const handleRecover = () => {
     if (running) return;
@@ -52,10 +49,10 @@ export function RecoveryPanel({
       location: "Nexus",
       type: "collapse_complete",
       message:
-        "RECOVERY PROTOCOL INITIATED · Reversing cascade · 5 stages projected",
+        "RECOVERY PROTOCOL INITIATED · Reversing cascade · 3 stages projected",
       severity: "info",
     });
-    void runRecovery(urls, apiKeys, {
+    void runRecovery(urls, apiKeys, result, {
       onStepStart: (i, label) => {
         setCurrentLabel(label);
         onAlert({

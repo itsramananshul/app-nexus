@@ -7,6 +7,7 @@ import {
 } from "@/lib/collapse";
 import type {
   CollapseApiKeys,
+  CollapseResult,
   CollapseStep,
   CollapseUrls,
   SentinelAlert,
@@ -32,7 +33,7 @@ interface ScenarioControllerProps {
   onStepStart: (index: number, label: string) => void;
   onStepDone: (index: number, label: string) => void;
   onStepError: (index: number, label: string, error: string) => void;
-  onComplete: () => void;
+  onComplete: (result: CollapseResult) => void;
   onReset: () => void;
 }
 
@@ -121,8 +122,8 @@ export function ScenarioController({
       onStepError: (i, label, err) => {
         onStepError(i, label, err);
       },
-      onComplete: () => {
-        onComplete();
+      onComplete: (result) => {
+        onComplete(result);
       },
     });
   };

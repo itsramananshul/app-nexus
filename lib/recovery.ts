@@ -1,12 +1,12 @@
 import type {
   CollapseApiKeys,
-  CollapseCallbacks,
+  CollapseResult,
   CollapseUrls,
+  RecoveryCallbacks,
 } from "./types";
 
-const STEP_GAP_MS = 1500;
+const STEP_GAP_MS = 3000;
 const REQUEST_TIMEOUT_MS = 6000;
-const RESTOCK_UNITS = 1000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -33,38 +33,24 @@ async function fetchWithTimeout(
   }
 }
 
-interface ListItem {
-  id: string;
-}
-interface OrderItem extends ListItem {
-  status: string;
-}
-interface ShipmentItem extends ListItem {
-  status: string;
-}
-interface TicketItem extends ListItem {
-  status: string;
-  severity?: string;
-  ticket_number?: string;
-}
-interface ErpItem extends ListItem {
-  compliance_status: string;
-}
-
+// ─────────────────────────────────────────────────────────────────────────
+// Stage 1 — restock Factory 2 materials + inventory back to ~80% of original
+// ─────────────────────────────────────────────────────────────────────────
 async function restockMaterials(
   url: string,
   apiKey: string | null,
+  drained: CollapseResult["drainedMaterials"],
 ): Promise<void> {
   const headers = authHeaders(apiKey);
-  const res = await fetchWithTimeout(`${url}/api/materials`, { headers });
-  if (!res.ok) throw new Error(`Failed to list materials: HTTP ${res.status}`);
-  const list = (await res.json()) as ListItem[];
-  for (const m of list) {
+  for (const item of drained) {
+    const target = Math.round(item.originalOnHand * 0.8);
+    const delta = Math.max(0, target - item.newOnHand);
+    if (delta <= 0) continue;
     try {
-      await fetchWithTimeout(`${url}/api/materials/${m.id}/restock`, {
+      await fetchWithTimeout(`${url}/api/materials/${item.id}/restock`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
-        body: JSON.stringify({ quantity: RESTOCK_UNITS }),
+        body: JSON.stringify({ quantity: delta }),
       });
     } catch {
       // continue
@@ -72,15 +58,41 @@ async function restockMaterials(
   }
 }
 
-async function unflagOrders(url: string, apiKey: string | null): Promise<void> {
+async function restockProducts(
+  url: string,
+  apiKey: string | null,
+  drained: CollapseResult["drainedProducts"],
+): Promise<void> {
   const headers = authHeaders(apiKey);
-  const res = await fetchWithTimeout(`${url}/api/orders`, { headers });
-  if (!res.ok) throw new Error(`Failed to list orders: HTTP ${res.status}`);
-  const list = (await res.json()) as OrderItem[];
-  for (const o of list) {
-    if (o.status !== "FLAGGED") continue;
+  for (const item of drained) {
+    const target = Math.round(item.originalOnHand * 0.8);
+    const delta = Math.max(0, target - item.newOnHand);
+    if (delta <= 0) continue;
     try {
-      await fetchWithTimeout(`${url}/api/orders/${o.id}/status`, {
+      await fetchWithTimeout(`${url}/api/inventory/${item.id}/restock`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...headers },
+        body: JSON.stringify({ quantity: delta }),
+      });
+    } catch {
+      // continue
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Stage 2 — move URGENT orders to IN_PRODUCTION + undo regressed orders +
+// resume DELAYED shipments → IN_TRANSIT
+// ─────────────────────────────────────────────────────────────────────────
+async function promoteOrders(
+  url: string,
+  apiKey: string | null,
+  ids: string[],
+): Promise<void> {
+  const headers = authHeaders(apiKey);
+  for (const id of ids) {
+    try {
+      await fetchWithTimeout(`${url}/api/orders/${id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify({ status: "IN_PRODUCTION" }),
@@ -91,18 +103,15 @@ async function unflagOrders(url: string, apiKey: string | null): Promise<void> {
   }
 }
 
-async function undelayShipments(
+async function resumeShipments(
   url: string,
   apiKey: string | null,
+  ids: string[],
 ): Promise<void> {
   const headers = authHeaders(apiKey);
-  const res = await fetchWithTimeout(`${url}/api/shipments`, { headers });
-  if (!res.ok) throw new Error(`Failed to list shipments: HTTP ${res.status}`);
-  const list = (await res.json()) as ShipmentItem[];
-  for (const s of list) {
-    if (s.status !== "DELAYED") continue;
+  for (const id of ids) {
     try {
-      await fetchWithTimeout(`${url}/api/shipments/${s.id}/status`, {
+      await fetchWithTimeout(`${url}/api/shipments/${id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify({ status: "IN_TRANSIT" }),
@@ -113,24 +122,23 @@ async function undelayShipments(
   }
 }
 
-async function resolveCriticalTickets(
+// ─────────────────────────────────────────────────────────────────────────
+// Stage 3 — resolve the 6 auto-created cascade tickets
+// ─────────────────────────────────────────────────────────────────────────
+async function resolveTickets(
   url: string,
   apiKey: string | null,
+  ids: string[],
 ): Promise<void> {
   const headers = authHeaders(apiKey);
-  const res = await fetchWithTimeout(`${url}/api/tickets`, { headers });
-  if (!res.ok) throw new Error(`Failed to list tickets: HTTP ${res.status}`);
-  const list = (await res.json()) as TicketItem[];
-  for (const t of list) {
-    if (t.status !== "OPEN" && t.status !== "IN_PROGRESS") continue;
-    if (t.severity !== "CRITICAL") continue;
+  for (const id of ids) {
     try {
-      await fetchWithTimeout(`${url}/api/tickets/${t.id}/status`, {
+      await fetchWithTimeout(`${url}/api/tickets/${id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify({
           status: "RESOLVED",
-          resolution: `Auto-resolved via Nexus recovery protocol at ${new Date().toISOString()}`,
+          resolution: `Auto-resolved by Nexus recovery protocol at ${new Date().toISOString()} — supply disruption mitigated.`,
         }),
       });
     } catch {
@@ -139,80 +147,57 @@ async function resolveCriticalTickets(
   }
 }
 
-async function restoreErpCompliance(
-  url: string,
-  apiKey: string | null,
-): Promise<void> {
-  const headers = authHeaders(apiKey);
-  const res = await fetchWithTimeout(`${url}/api/records`, { headers });
-  if (!res.ok) throw new Error(`Failed to list records: HTTP ${res.status}`);
-  const list = (await res.json()) as ErpItem[];
-  for (const r of list) {
-    if (r.compliance_status !== "NON_COMPLIANT") continue;
-    try {
-      await fetchWithTimeout(`${url}/api/records/${r.id}/compliance`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", ...headers },
-        body: JSON.stringify({ complianceStatus: "COMPLIANT" }),
-      });
-    } catch {
-      // continue
-    }
-  }
-}
-
-interface Step {
-  label: string;
-  url: string | null;
-  apiKey: string | null;
-  run: (url: string, apiKey: string | null) => Promise<void>;
-}
-
+// ─────────────────────────────────────────────────────────────────────────
+// Orchestrator — 3 recovery stages
+// ─────────────────────────────────────────────────────────────────────────
 export const RECOVERY_STEP_LABELS: readonly string[] = [
-  "Restoring ERP compliance records",
-  "Resolving critical incidents",
-  "Resuming delayed shipments",
-  "Releasing flagged production orders",
-  "Replenishing Factory 2 raw materials",
+  "Replenishing Factory 2 materials and inventory",
+  "Promoting urgent orders · resuming delayed shipments",
+  "Resolving cascade incident tickets",
 ];
 
 export async function runRecovery(
   urls: CollapseUrls,
   apiKeys: CollapseApiKeys,
-  callbacks: CollapseCallbacks,
+  result: CollapseResult,
+  callbacks: RecoveryCallbacks,
 ): Promise<void> {
-  // Recovery order is the REVERSE of the collapse cascade — restore the
-  // outermost effects first, work inward to the root cause (materials).
-  const steps: Step[] = [
+  const steps: { label: string; run: () => Promise<void> }[] = [
     {
       label: RECOVERY_STEP_LABELS[0],
-      url: urls.erp,
-      apiKey: apiKeys.erp,
-      run: restoreErpCompliance,
+      run: async () => {
+        if (urls.matF2 && result.drainedMaterials.length > 0) {
+          await restockMaterials(urls.matF2, apiKeys.matF2Key, result.drainedMaterials);
+        }
+        if (urls.invF2 && result.drainedProducts.length > 0) {
+          await restockProducts(urls.invF2, apiKeys.invF2Key, result.drainedProducts);
+        }
+      },
     },
     {
       label: RECOVERY_STEP_LABELS[1],
-      url: urls.support,
-      apiKey: apiKeys.support,
-      run: resolveCriticalTickets,
+      run: async () => {
+        if (urls.ord) {
+          if (result.createdOrderIds.length > 0) {
+            await promoteOrders(urls.ord, apiKeys.ordKey, result.createdOrderIds);
+          }
+          if (result.regressedOrderIds.length > 0) {
+            // Originals were IN_PRODUCTION → became PENDING → put back to IN_PRODUCTION
+            await promoteOrders(urls.ord, apiKeys.ordKey, result.regressedOrderIds);
+          }
+        }
+        if (urls.shp && result.delayedShipmentIds.length > 0) {
+          await resumeShipments(urls.shp, apiKeys.shpKey, result.delayedShipmentIds);
+        }
+      },
     },
     {
       label: RECOVERY_STEP_LABELS[2],
-      url: urls.shipments,
-      apiKey: apiKeys.shipments,
-      run: undelayShipments,
-    },
-    {
-      label: RECOVERY_STEP_LABELS[3],
-      url: urls.orders,
-      apiKey: apiKeys.orders,
-      run: unflagOrders,
-    },
-    {
-      label: RECOVERY_STEP_LABELS[4],
-      url: urls.materialsF2,
-      apiKey: apiKeys.materialsF2,
-      run: restockMaterials,
+      run: async () => {
+        if (urls.sup && result.createdTicketIds.length > 0) {
+          await resolveTickets(urls.sup, apiKeys.supKey, result.createdTicketIds);
+        }
+      },
     },
   ];
 
@@ -220,12 +205,8 @@ export async function runRecovery(
     const step = steps[i];
     callbacks.onStepStart(i, step.label);
     try {
-      if (!step.url) {
-        callbacks.onStepError(i, step.label, "URL not configured — skipped");
-      } else {
-        await step.run(step.url, step.apiKey);
-        callbacks.onStepDone(i, step.label);
-      }
+      await step.run();
+      callbacks.onStepDone(i, step.label);
     } catch (e) {
       const message = e instanceof Error ? e.message : "Unknown error";
       callbacks.onStepError(i, step.label, message);
