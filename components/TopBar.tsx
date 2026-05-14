@@ -2,13 +2,17 @@
 
 import { useEffect, useState } from "react";
 import type { NodeStatus } from "@/lib/types";
+import { isMuted, setMuted } from "@/lib/sounds";
 
 interface TopBarProps {
   totalNodes: number;
   statuses: Map<string, NodeStatus>;
+  nodesWithoutKey: number;
+  collapsingNodeIds: Set<string>;
   activeAlerts: number;
   onOpenApiKeys: () => void;
   onStartPitch: () => void;
+  onResetDemo: () => void;
 }
 
 function formatTime(d: Date): string {
@@ -23,32 +27,63 @@ function formatTime(d: Date): string {
 export function TopBar({
   totalNodes,
   statuses,
+  nodesWithoutKey,
+  collapsingNodeIds,
   activeAlerts,
   onOpenApiKeys,
   onStartPitch,
+  onResetDemo,
 }: TopBarProps) {
   const [clock, setClock] = useState<Date>(new Date());
+  const [muted, setMutedState] = useState<boolean>(false);
 
   useEffect(() => {
     const id = setInterval(() => setClock(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  let okCount = 0;
+  useEffect(() => {
+    setMutedState(isMuted());
+  }, []);
+
+  // System Health score:
+  //   start at 100
+  //   each degraded node    -> -(100 / N)
+  //   each critical/no-key  -> -(200 / N)
+  //   (collapsing counts as critical for visual effect during the cascade)
+  //   floor at 0, ceiling at 100
   let degradedCount = 0;
+  let criticalCount = 0;
+  let okCount = 0;
   for (const s of statuses.values()) {
     if (s.health === "ok") okCount++;
-    else degradedCount++;
+    else if (s.health === "degraded") degradedCount++;
+    else criticalCount++; // unreachable
   }
-  const online = okCount + degradedCount;
-  const health =
-    totalNodes === 0 ? 0 : Math.round((okCount / totalNodes) * 100);
+  // Treat collapsing nodes as critical (they may still report "ok" from
+  // /api/status during the cascade because the backend is up — the visual
+  // distress is data-level, so reflect it in the score).
+  const collapsing = collapsingNodeIds.size;
+  const effectiveCritical = Math.min(totalNodes, criticalCount + collapsing);
+  const totalForFormula = totalNodes || 1;
+  const penalty =
+    (degradedCount * 100) / totalForFormula +
+    (effectiveCritical + nodesWithoutKey) * (200 / totalForFormula);
+  const health = Math.max(0, Math.min(100, Math.round(100 - penalty)));
   const healthTone =
-    health >= 90
+    health > 80
       ? "text-emerald-300"
-      : health >= 60
+      : health >= 50
         ? "text-amber-300"
         : "text-rose-300";
+
+  const online = okCount + degradedCount + criticalCount;
+
+  const toggleMute = () => {
+    const next = !muted;
+    setMutedState(next);
+    setMuted(next);
+  };
 
   return (
     <header className="border-b border-cyan-500/15 bg-[#050810]/95 backdrop-blur supports-[backdrop-filter]:bg-[#050810]/75">
@@ -66,20 +101,12 @@ export function TopBar({
           </p>
         </div>
 
-        {/* Center — three live counters */}
-        <div className="ml-auto flex items-center gap-6">
+        {/* Center — live counters */}
+        <div className="ml-auto flex items-center gap-5">
           <Counter
             label="Nodes Online"
             value={`${online}/${totalNodes}`}
             tone="text-cyan-300"
-            pulse
-          />
-          <span className="h-6 w-px bg-slate-800" aria-hidden />
-          <Counter
-            label="System Health"
-            value={`${health}%`}
-            tone={healthTone}
-            pulse={health < 90}
           />
           <span className="h-6 w-px bg-slate-800" aria-hidden />
           <Counter
@@ -89,10 +116,14 @@ export function TopBar({
               activeAlerts > 0 ? "text-rose-300 pulse-live" : "text-slate-300"
             }
           />
-        </div>
-
-        {/* Right — clock + key button */}
-        <div className="flex items-center gap-3">
+          <span className="h-6 w-px bg-slate-800" aria-hidden />
+          <Counter
+            label="System Health"
+            value={`${health}%`}
+            tone={healthTone}
+            pulse={health < 80}
+          />
+          <span className="h-6 w-px bg-slate-800" aria-hidden />
           <div className="flex flex-col items-end">
             <span className="text-[10px] uppercase tracking-[0.25em] text-slate-500">
               UTC{(-new Date().getTimezoneOffset()) >= 0 ? "+" : ""}
@@ -102,6 +133,10 @@ export function TopBar({
               {formatTime(clock)}
             </span>
           </div>
+        </div>
+
+        {/* Right — action buttons */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onStartPitch}
@@ -111,6 +146,24 @@ export function TopBar({
           >
             <span aria-hidden>▶</span>
             Pitch Mode
+          </button>
+          <button
+            type="button"
+            onClick={onResetDemo}
+            aria-label="Reset demo data"
+            title="Re-seed all demo data"
+            className="rounded-md border border-slate-700/60 bg-slate-900/60 px-2.5 py-1.5 text-xs text-slate-400 hover:border-amber-500/40 hover:bg-slate-800 hover:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+          >
+            <span aria-hidden>↺</span>
+          </button>
+          <button
+            type="button"
+            onClick={toggleMute}
+            aria-label={muted ? "Unmute sound effects" : "Mute sound effects"}
+            title={muted ? "Unmute" : "Mute"}
+            className="rounded-md border border-slate-700/60 bg-slate-900/60 px-2.5 py-1.5 text-xs text-slate-400 hover:border-cyan-500/40 hover:bg-slate-800 hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+          >
+            <span aria-hidden>{muted ? "🔇" : "🔊"}</span>
           </button>
           <button
             type="button"
@@ -141,7 +194,7 @@ function Counter({ label, value, tone, pulse }: CounterProps) {
         {label}
       </span>
       <span
-        className={`font-mono text-lg tabular-nums ${tone} ${pulse ? "pulse-live" : ""}`}
+        className={`font-mono text-lg tabular-nums transition-colors ${tone} ${pulse ? "pulse-live" : ""}`}
       >
         {value}
       </span>

@@ -30,8 +30,15 @@ import type {
   SentinelAlert,
 } from "@/lib/types";
 import { usePoller } from "@/lib/usePoller";
+import {
+  alertBeep,
+  cascadeChime,
+  recoveryChime,
+} from "@/lib/sounds";
+import { notify, requestPermissionOnce } from "@/lib/notifications";
 
 const ALERT_MAX = 200;
+const SPARKLINE_HISTORY_MAX = 20;
 
 const INITIAL_STEPS: CollapseStep[] = SCENARIO_STAGE_LABELS.map((label, i) => ({
   index: i,
@@ -105,6 +112,10 @@ export default function Page() {
   const [recovering, setRecovering] = useState(false);
   const [recoveryLabel, setRecoveryLabel] = useState<string | null>(null);
   const [pitchActive, setPitchActive] = useState(false);
+  const [history, setHistory] = useState<Map<string, number[]>>(new Map());
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetToast, setResetToast] = useState<string | null>(null);
 
   // Track when the scenario ended so we can hold the exposure ticker
   const completedAtRef = useRef<number | null>(null);
@@ -122,12 +133,55 @@ export default function Page() {
 
   const handleAlert = useCallback((alert: SentinelAlert) => {
     setAlerts((prev) => [alert, ...prev].slice(0, ALERT_MAX));
+    // Fire a desktop notification when a node transitions to a bad state.
+    // notify() handles its own focus + cooldown checks.
+    if (
+      alert.type === "health_degraded" ||
+      alert.type === "unreachable" ||
+      alert.type === "collapse_triggered"
+    ) {
+      const severity =
+        alert.severity === "critical" ? "CRITICAL" : "DEGRADED";
+      notify(
+        alert.nodeId,
+        `Nexus Alert · ${severity}`,
+        `${alert.location} · ${alert.nodeLabel} — ${alert.message}`,
+      );
+    }
   }, []);
 
   // Don't start polling until the per-node keys finish loading from Supabase —
   // this prevents the 401 flicker on first load while keys are still hydrating.
   const pollingNodes = keysLoaded ? nodes : [];
   const statuses = usePoller(pollingNodes, handleAlert);
+
+  // Ask for Notification permission once on first load (no-op if already
+  // decided). Wrapped so this runs only after hydration on the client.
+  useEffect(() => {
+    void requestPermissionOnce();
+  }, []);
+
+  // Track the last 20 primary-metric values per node for sparklines. Runs on
+  // every poll tick — appends the new value if changed (or just keeps last).
+  useEffect(() => {
+    if (statuses.size === 0) return;
+    setHistory((prev) => {
+      const next = new Map(prev);
+      for (const node of nodes) {
+        const s = statuses.get(node.id);
+        if (!s?.details) continue;
+        const { value } = primaryMetricFor(node.type, s.details);
+        if (typeof value !== "number") continue;
+        const arr = next.get(node.id) ?? [];
+        // Skip if value is identical to last to avoid flat-line noise from
+        // multiple re-renders within the same poll cycle.
+        if (arr.length > 0 && arr[arr.length - 1] === value) continue;
+        const updated = [...arr, value].slice(-SPARKLINE_HISTORY_MAX);
+        next.set(node.id, updated);
+      }
+      return next;
+    });
+  }, [statuses, nodes]);
 
   // 1Hz tick for clock, "Xs ago" labels, scenario elapsed counter
   useEffect(() => {
@@ -157,6 +211,7 @@ export default function Page() {
       );
       const target = STEP_TO_NODE[index];
       if (target) setCollapsingNodeId(target.id);
+      cascadeChime(index);
       handleAlert({
         id: newAlertId(),
         timestamp: new Date(),
@@ -275,6 +330,40 @@ export default function Page() {
     }, 10_000);
   }, []);
 
+  // ── Reset Demo ──
+  const handleResetDemo = useCallback(() => {
+    setResetConfirmOpen(true);
+  }, []);
+
+  const handleResetConfirm = useCallback(async () => {
+    setResetBusy(true);
+    try {
+      const res = await fetch("/api/reset-demo", { method: "POST" });
+      const body = (await res.json().catch(() => null)) as
+        | { success?: boolean; rowsInserted?: number; error?: string }
+        | null;
+      if (!res.ok || body?.success !== true) {
+        throw new Error(body?.error ?? `HTTP ${res.status}`);
+      }
+      setResetToast(
+        `Demo reset · ${body.rowsInserted ?? 0} rows seeded · Ready for presentation`,
+      );
+      setResetConfirmOpen(false);
+    } catch (e) {
+      const m = e instanceof Error ? e.message : "Reset failed";
+      setResetToast(`Reset failed · ${m}`);
+    } finally {
+      setResetBusy(false);
+    }
+  }, []);
+
+  // Auto-dismiss the toast after 4s
+  useEffect(() => {
+    if (!resetToast) return;
+    const id = setTimeout(() => setResetToast(null), 4000);
+    return () => clearTimeout(id);
+  }, [resetToast]);
+
   const collapseUrls = useMemo<CollapseUrls>(() => {
     function find(id: string): string | null {
       const n = nodes.find((x) => x.id === id);
@@ -344,6 +433,7 @@ export default function Page() {
     setCollapseResult(null);
     completedAtRef.current = null;
     setScenarioState("executing");
+    alertBeep();
     void runFactoryCollapse(collapseUrls, collapseApiKeys, {
       onStepStart,
       onStepDone,
@@ -405,6 +495,7 @@ export default function Page() {
       onComplete: () => {
         setRecovering(false);
         setRecoveryLabel(null);
+        recoveryChime();
         handleAlert({
           id: newAlertId(),
           timestamp: new Date(),
@@ -475,9 +566,12 @@ export default function Page() {
       <TopBar
         totalNodes={nodes.length}
         statuses={statuses}
+        nodesWithoutKey={nodes.filter((n) => !n.apiKey).length}
+        collapsingNodeIds={collapsingNodeIds}
         activeAlerts={activeAlerts}
         onOpenApiKeys={() => setKeysPanelOpen(true)}
         onStartPitch={() => setPitchActive(true)}
+        onResetDemo={handleResetDemo}
       />
 
       <main className="flex-1 overflow-hidden">
@@ -489,6 +583,7 @@ export default function Page() {
               collapsingNodeIds={collapsingNodeIds}
               now={now}
               isLoadingKeys={!keysLoaded}
+              history={history}
             />
             <AlertFeed alerts={alerts} />
           </div>
@@ -548,6 +643,63 @@ export default function Page() {
         onTriggerCollapse={triggerCollapse}
         onTriggerRecovery={triggerRecovery}
       />
+
+      {resetConfirmOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-[#020409]/85 p-4 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !resetBusy)
+              setResetConfirmOpen(false);
+          }}
+        >
+          <div className="w-full max-w-md rounded-lg border border-amber-500/40 bg-[#0a1322] p-6 shadow-2xl">
+            <h3 className="flex items-center gap-2 text-base font-semibold uppercase tracking-[0.15em] text-amber-300">
+              <span aria-hidden>↺</span>
+              Reset demo data?
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-slate-300">
+              This will <strong className="text-amber-200">clear and re-seed</strong>{" "}
+              all 6 demo tables across every app instance.
+            </p>
+            <p className="mt-2 text-xs text-slate-500">
+              Run before each presentation to get a fresh dataset.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setResetConfirmOpen(false)}
+                disabled={resetBusy}
+                className="rounded-md border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-300 hover:bg-slate-800 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleResetConfirm()}
+                disabled={resetBusy}
+                className="glow-amber-box rounded-md border border-amber-400/50 bg-amber-500 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-950 shadow-lg hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {resetBusy ? "Seeding…" : "Reset & Reseed"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {resetToast ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="alert-enter fixed bottom-24 right-6 z-[70] max-w-md rounded-md border border-cyan-500/40 bg-[#0a1322]/95 px-4 py-3 shadow-2xl"
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300">
+            {resetToast.startsWith("Reset failed") ? "✗ Reset failed" : "✓ Reset complete"}
+          </p>
+          <p className="mt-1 text-xs text-slate-300">{resetToast}</p>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -15,12 +15,13 @@ interface NetworkGraphProps {
   collapsingNodeIds: Set<string>;
   now: Date;
   isLoadingKeys?: boolean;
+  history?: Map<string, number[]>;
 }
 
 type NodePos = { x: number; y: number };
 
 const NODE_W = 150;
-const NODE_H = 64;
+const NODE_H = 80;
 
 const POSITIONS: Record<string, NodePos> = {
   // Top — Factory 1 + Factory 3
@@ -116,6 +117,7 @@ export function NetworkGraph({
   collapsingNodeIds,
   now,
   isLoadingKeys = false,
+  history,
 }: NetworkGraphProps) {
   const byId = useMemo(() => {
     const m = new Map<string, NodeConfig>();
@@ -337,6 +339,7 @@ export function NetworkGraph({
                 hasKey={!!node.apiKey}
                 loading={isLoadingKeys}
                 ago={fmtAgo(now, status?.lastChecked)}
+                history={history?.get(node.id) ?? []}
               />
             );
           })}
@@ -354,6 +357,7 @@ interface NodeCardProps {
   hasKey: boolean;
   loading: boolean;
   ago: string;
+  history: number[];
 }
 
 function NodeCard({
@@ -364,6 +368,7 @@ function NodeCard({
   hasKey,
   loading,
   ago,
+  history,
 }: NodeCardProps) {
   const health = status?.health;
   const noKey = !hasKey;
@@ -457,7 +462,69 @@ function NodeCard({
           {ago}
         </span>
       </div>
+      <div className="mt-1 flex justify-end">
+        <Sparkline
+          values={history}
+          tone={
+            collapsing || health === "unreachable"
+              ? "#ef4444"
+              : health === "degraded"
+                ? "#f59e0b"
+                : "#22d3ee"
+          }
+        />
+      </div>
     </div>
+  );
+}
+
+interface SparklineProps {
+  values: number[];
+  tone: string;
+}
+
+function Sparkline({ values, tone }: SparklineProps) {
+  const W = 60;
+  const H = 14;
+  if (values.length < 2) {
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} aria-hidden>
+        <line
+          x1="0"
+          y1={H - 1}
+          x2={W}
+          y2={H - 1}
+          stroke="#1f2937"
+          strokeWidth="1"
+        />
+      </svg>
+    );
+  }
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = Math.max(1, max - min);
+  const step = W / (values.length - 1);
+  const points = values
+    .map((v, i) => {
+      const x = i * step;
+      const y = H - 1 - ((v - min) / range) * (H - 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  const lastX = (values.length - 1) * step;
+  const lastY = H - 1 - ((values[values.length - 1] - min) / range) * (H - 2);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} aria-hidden>
+      <polyline
+        fill="none"
+        stroke={tone}
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={points}
+      />
+      <circle cx={lastX} cy={lastY} r="1.4" fill={tone} />
+    </svg>
   );
 }
 
