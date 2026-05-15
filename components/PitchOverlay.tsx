@@ -241,7 +241,10 @@ export function PitchOverlay({
                   <button
                     key={opt.key}
                     type="button"
-                    onClick={() => onTriggerScenario(opt.key)}
+                    onClick={() => {
+                      onTriggerScenario(opt.key);
+                      onClose(); // close so user can watch the graph react
+                    }}
                     disabled={scenarioActive || recovering}
                     style={{
                       textAlign: "left",
