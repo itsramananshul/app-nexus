@@ -68,50 +68,62 @@ export function NexusApiKeysPanel({
   return (
     <>
       <div
-        className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm"
+        className="fixed inset-0 z-40"
+        style={{ background: "rgba(0,0,0,0.7)" }}
         onClick={onClose}
         aria-hidden
       />
       <aside
         role="dialog"
         aria-modal="true"
-        aria-label="Nexus API keys"
-        className="fixed inset-y-0 right-0 z-40 flex w-full max-w-2xl flex-col border-l border-cyan-500/20 bg-slate-900 shadow-2xl"
+        aria-label="API keys"
+        className="fixed inset-y-0 right-0 z-40 flex w-full max-w-2xl flex-col"
+        style={{
+          background: "#0a0a0a",
+          borderLeft: "1px solid #1a1a1a",
+        }}
       >
-        <header className="flex items-start justify-between border-b border-slate-800 px-5 py-4">
-          <div>
-            <h2 className="text-lg font-semibold text-cyan-300">
-              <span aria-hidden className="mr-2">
-                🔑
-              </span>
-              Nexus API Keys
-            </h2>
-            <p className="mt-1 text-xs text-slate-400">
-              One key per monitored node, sent as{" "}
-              <code className="text-slate-300">x-api-key</code> on collapse
-              mutations only. Generate a key in each backend&apos;s 🔑 panel
-              and paste it here.
-            </p>
-          </div>
+        <header
+          className="flex items-start justify-between px-6 py-4"
+          style={{ borderBottom: "1px solid #1a1a1a" }}
+        >
+          <h2
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: "#fff",
+              letterSpacing: "-0.005em",
+            }}
+          >
+            API Keys
+          </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close API keys panel"
-            className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+            style={{ color: "#555" }}
+            className="leading-none text-2xl hover:text-white"
           >
-            <span aria-hidden className="text-2xl leading-none">
-              ×
-            </span>
+            ×
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
           {grouped.map(({ location, members }) => (
             <section key={location} className="mb-5 last:mb-0">
-              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+              <h3
+                className="mb-2"
+                style={{
+                  fontSize: 11,
+                  color: "#555",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  fontWeight: 500,
+                }}
+              >
                 {location}
               </h3>
-              <ul className="space-y-2">
+              <ul style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {members.map((node) => {
                   const savedKey = overrides[node.id] ?? null;
                   const state: RowState = rowState[node.id] ?? {
@@ -121,25 +133,31 @@ export function NexusApiKeysPanel({
                   return (
                     <li
                       key={node.id}
-                      className="rounded-lg border border-slate-700 bg-slate-900/60 p-3"
+                      style={{
+                        background: "#111",
+                        border: "1px solid #1e1e1e",
+                        borderRadius: 8,
+                        padding: 12,
+                      }}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span aria-hidden className="text-base">
-                            {NODE_TYPE_EMOJI[node.type]}
-                          </span>
-                          <span className="text-sm font-medium text-slate-100">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            style={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: "50%",
+                              background: savedKey ? "#22c55e" : "#444",
+                              flexShrink: 0,
+                            }}
+                            aria-hidden
+                          />
+                          <span
+                            className="truncate"
+                            style={{ fontSize: 13, color: "#fff", fontWeight: 500 }}
+                          >
                             {node.label}
                           </span>
-                          {savedKey ? (
-                            <span className="rounded-sm bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-300 ring-1 ring-inset ring-emerald-500/30">
-                              Set
-                            </span>
-                          ) : (
-                            <span className="rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300 ring-1 ring-inset ring-amber-500/30">
-                              Not set
-                            </span>
-                          )}
                         </div>
                         <div className="flex items-center gap-1">
                           {!state.editing ? (
@@ -148,16 +166,32 @@ export function NexusApiKeysPanel({
                               onClick={() =>
                                 patch(node.id, { editing: true, value: "" })
                               }
-                              className="rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-200 ring-1 ring-inset ring-slate-700 hover:bg-slate-700"
+                              style={{
+                                background: "transparent",
+                                border: "1px solid #2a2a2a",
+                                color: "#888",
+                                padding: "4px 10px",
+                                borderRadius: 6,
+                                fontSize: 12,
+                                cursor: "pointer",
+                              }}
                             >
-                              Edit
+                              {savedKey ? "Edit" : "Set"}
                             </button>
                           ) : null}
                           {overrides[node.id] ? (
                             <button
                               type="button"
                               onClick={() => onClearOverride(node.id)}
-                              className="rounded-md bg-rose-500/10 px-2.5 py-1 text-xs font-medium text-rose-300 ring-1 ring-inset ring-rose-500/30 hover:bg-rose-500/20"
+                              style={{
+                                background: "transparent",
+                                border: "1px solid #2a2a2a",
+                                color: "#ef4444",
+                                padding: "4px 10px",
+                                borderRadius: 6,
+                                fontSize: 12,
+                                cursor: "pointer",
+                              }}
                             >
                               Clear
                             </button>
@@ -165,7 +199,10 @@ export function NexusApiKeysPanel({
                         </div>
                       </div>
 
-                      <div className="mt-2 truncate font-mono text-[11px] text-slate-400">
+                      <div
+                        className="mt-2 truncate font-mono"
+                        style={{ fontSize: 11, color: "#666" }}
+                      >
                         {savedKey ? previewKey(savedKey) : "—"}
                       </div>
 
@@ -188,12 +225,30 @@ export function NexusApiKeysPanel({
                             }
                             placeholder="Paste an API key…"
                             autoFocus
-                            className="flex-1 rounded-md border-0 bg-slate-800 px-3 py-1.5 font-mono text-xs text-slate-100 ring-1 ring-inset ring-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            className="flex-1 font-mono"
+                            style={{
+                              background: "#0a0a0a",
+                              border: "1px solid #1e1e1e",
+                              borderRadius: 6,
+                              padding: "6px 10px",
+                              fontSize: 12,
+                              color: "#fff",
+                              outline: "none",
+                            }}
                           />
                           <button
                             type="submit"
                             disabled={!state.value.trim()}
-                            className="rounded-md bg-sky-500 px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
+                            style={{
+                              background: state.value.trim() ? "#0070f3" : "#1a1a1a",
+                              color: state.value.trim() ? "#fff" : "#444",
+                              border: "none",
+                              borderRadius: 6,
+                              padding: "6px 14px",
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: state.value.trim() ? "pointer" : "not-allowed",
+                            }}
                           >
                             Save
                           </button>
@@ -202,7 +257,15 @@ export function NexusApiKeysPanel({
                             onClick={() =>
                               patch(node.id, { editing: false, value: "" })
                             }
-                            className="rounded-md px-2.5 py-1 text-xs font-medium text-slate-300 hover:bg-slate-800"
+                            style={{
+                              background: "transparent",
+                              border: "1px solid #2a2a2a",
+                              color: "#888",
+                              borderRadius: 6,
+                              padding: "6px 10px",
+                              fontSize: 12,
+                              cursor: "pointer",
+                            }}
                           >
                             Cancel
                           </button>
@@ -215,12 +278,6 @@ export function NexusApiKeysPanel({
             </section>
           ))}
         </div>
-
-        <footer className="border-t border-slate-800 bg-slate-950/40 px-5 py-3 text-[11px] text-slate-500">
-          Keys live in this browser&apos;s localStorage. A key generated by one
-          app only authenticates calls to that app — paste each app&apos;s key
-          into its own row.
-        </footer>
       </aside>
     </>
   );

@@ -197,18 +197,26 @@ export function AuditTimeline({
       style={{
         transform: open ? "translateX(0)" : "translateX(100%)",
         transition: "transform 250ms ease",
-        background: "#0f172a",
-        borderLeft: "1px solid rgba(255,255,255,0.08)",
+        background: "#0a0a0a",
+        borderLeft: "1px solid #1a1a1a",
       }}
     >
       <div className="flex h-full w-full flex-col">
-        <header className="flex items-center justify-between gap-3 border-b border-white/8 px-4 py-3">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
-              Nexus
-            </div>
-            <h2 className="text-sm font-semibold text-white">Audit Timeline</h2>
-          </div>
+        <header
+          className="flex items-center justify-between gap-3 px-4 py-3"
+          style={{ borderBottom: "1px solid #1a1a1a" }}
+        >
+          <h2
+            style={{
+              fontSize: 11,
+              color: "#444",
+              textTransform: "uppercase",
+              letterSpacing: "0.12em",
+              fontWeight: 500,
+            }}
+          >
+            Audit Log
+          </h2>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -219,7 +227,22 @@ export function AuditTimeline({
                   ? "Export incident report as PDF"
                   : "PDF available after a collapse + recovery cycle"
               }
-              className="rounded border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-cyan-300 hover:bg-cyan-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                background: "transparent",
+                border: "1px solid #2a2a2a",
+                color: canExport ? "#888" : "#444",
+                borderRadius: 6,
+                padding: "4px 10px",
+                fontSize: 11,
+                fontWeight: 500,
+                cursor: canExport ? "pointer" : "not-allowed",
+              }}
+              onMouseEnter={(e) => {
+                if (canExport) e.currentTarget.style.color = "#fff";
+              }}
+              onMouseLeave={(e) => {
+                if (canExport) e.currentTarget.style.color = "#888";
+              }}
             >
               Export PDF
             </button>
@@ -227,36 +250,67 @@ export function AuditTimeline({
               type="button"
               onClick={onClose}
               aria-label="Close audit timeline"
-              className="text-slate-500 hover:text-slate-200 text-lg leading-none px-1"
+              style={{ color: "#555" }}
+              className="text-lg leading-none px-1 hover:text-white"
             >
               ×
             </button>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto">
+        <div
+          className="flex-1 overflow-y-auto scrollbar-thin"
+          style={{ scrollbarColor: "#222 #000" }}
+        >
           {sorted.length === 0 ? (
-            <div className="p-6 text-center text-xs text-slate-500">
+            <div
+              className="p-6 text-center"
+              style={{ color: "#444", fontSize: 12 }}
+            >
               No events recorded yet. Trigger a scenario or wait for the system poll.
             </div>
           ) : (
-            <ul className="divide-y divide-white/5">
+            <ul>
               {sorted.map((e) => (
                 <li
                   key={e.id}
                   className="px-4 py-3"
                   style={{
-                    borderLeft: `2px solid ${SEVERITY_COLOR[e.severity]}`,
-                    marginLeft: 0,
+                    borderBottom: "1px solid #111",
+                    transition: "background 120ms ease",
                   }}
+                  onMouseEnter={(ev) =>
+                    (ev.currentTarget.style.background = "#111")
+                  }
+                  onMouseLeave={(ev) =>
+                    (ev.currentTarget.style.background = "transparent")
+                  }
                 >
-                  <div
-                    className="font-mono text-[10px] tabular-nums"
-                    style={{ color: "#64748b" }}
-                  >
-                    {fmtTime(e.timestamp)}
+                  <div className="flex items-baseline gap-2">
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: SEVERITY_COLOR[e.severity],
+                        flexShrink: 0,
+                        transform: "translateY(2px)",
+                      }}
+                      aria-hidden
+                    />
+                    <span
+                      className="font-mono tabular-nums"
+                      style={{ fontSize: 11, color: "#444" }}
+                    >
+                      {fmtTime(e.timestamp)}
+                    </span>
                   </div>
-                  <div className="mt-0.5 text-xs text-white">{e.message}</div>
+                  <div
+                    className="mt-1"
+                    style={{ fontSize: 13, color: "#888", paddingLeft: 14 }}
+                  >
+                    {e.message}
+                  </div>
                 </li>
               ))}
             </ul>

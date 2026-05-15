@@ -218,17 +218,19 @@ export function NetworkGraph({
 
             {/* Orthogonal (right-angle) connector lines.
                 Route each edge horizontally to the midpoint, then vertically
-                to the target's row, then horizontally into the target. */}
+                to the target's row, then horizontally into the target.
+                Color reflects the health of both endpoints, computed live
+                from the polled statuses map. */}
             {edgeStates.map(({ edge, critical, warning }, idx) => {
               const a = hubCenter(edge.from);
               const b = hubCenter(edge.to);
               if (!a || !b) return null;
               const stroke = critical
-                ? "#ef4444"
+                ? "#7f1d1d"
                 : warning
-                  ? "#f59e0b"
-                  : "#1a1a1a";
-              const strokeWidth = critical || warning ? 1.5 : 1.5;
+                  ? "#92400e"
+                  : "#166534";
+              const strokeWidth = 1.5;
               const midX = (a.x + b.x) / 2;
               const d = `M ${a.x} ${a.y} H ${midX} V ${b.y} H ${b.x}`;
               return (
@@ -255,39 +257,31 @@ export function NetworkGraph({
                   <circle
                     cx={p.x}
                     cy={p.y}
-                    r={r + 4}
-                    fill="none"
-                    stroke="rgba(0,212,255,0.15)"
-                    strokeWidth="1"
-                  />
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
                     r={r}
-                    fill="#06101e"
-                    stroke="rgba(0,212,255,0.4)"
-                    strokeWidth="1.5"
+                    fill="#0a0a0a"
+                    stroke="#1e1e1e"
+                    strokeWidth="1"
                   />
                   <text
                     x={p.x}
-                    y={p.y - 2}
+                    y={p.y - 1}
                     textAnchor="middle"
-                    fontSize={isCorporate ? "10" : "9"}
-                    fontWeight="600"
-                    fill="rgba(0,212,255,0.85)"
-                    letterSpacing="0.1em"
+                    fontSize={isCorporate ? "11" : "10"}
+                    fontWeight="500"
+                    fill="#ffffff"
+                    letterSpacing="0.08em"
                   >
                     {isCorporate ? "CORP" : id.replace("factory-", "F")}
                   </text>
                   <text
                     x={p.x}
-                    y={p.y + 10}
+                    y={p.y + 11}
                     textAnchor="middle"
-                    fontSize="7"
-                    fill="rgba(148,163,184,0.7)"
-                    letterSpacing="0.1em"
+                    fontSize="9"
+                    fill="#555555"
+                    letterSpacing="0.08em"
                   >
-                    {isCorporate ? "HUB" : "HUB"}
+                    HUB
                   </text>
                 </g>
               );

@@ -813,7 +813,7 @@ export default function Page() {
             className="h-full w-full"
             style={{
               display: "grid",
-              gridTemplateColumns: mapVisible ? "1fr 240px 300px" : "1fr 300px",
+              gridTemplateColumns: "1fr 300px",
               gridTemplateRows: "1fr",
             }}
           >
@@ -830,37 +830,6 @@ export default function Page() {
                 history={history}
               />
             </div>
-
-            {mapVisible ? (
-              <div
-                className="h-full min-w-0 overflow-hidden"
-                style={{ background: "#000", borderLeft: "1px solid #1a1a1a" }}
-              >
-                <FactoryMap
-                  nodes={nodes.map((n) => {
-                    const s = statuses.get(n.id);
-                    const health = collapsingNodeIds.has(n.id)
-                      ? "unreachable"
-                      : s?.health;
-                    const status =
-                      health === "ok"
-                        ? "healthy"
-                        : health === "degraded"
-                          ? "degraded"
-                          : health === "unreachable"
-                            ? "critical"
-                            : "unknown";
-                    return {
-                      name: n.label,
-                      status,
-                      uptime_pct:
-                        health === "ok" ? 100 : health === "degraded" ? 70 : 0,
-                    };
-                  })}
-                  history={history}
-                />
-              </div>
-            ) : null}
 
             <IncidentPanel
               scenarioName={
@@ -886,6 +855,65 @@ export default function Page() {
             />
           </div>
         </main>
+
+        {/* Globe — fixed bottom-right overlay, toggled from the TopBar Map button */}
+        {mapVisible ? (
+          <div
+            style={{
+              position: "fixed",
+              bottom: 24,
+              right: 24,
+              width: 280,
+              height: 280,
+              background: "#000",
+              border: "1px solid #1a1a1a",
+              borderRadius: 12,
+              overflow: "hidden",
+              zIndex: 40,
+              boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: 10,
+                left: 12,
+                fontSize: 10,
+                color: "#333",
+                textTransform: "uppercase",
+                letterSpacing: "0.18em",
+                fontWeight: 600,
+                zIndex: 2,
+                pointerEvents: "none",
+              }}
+            >
+              MAP
+            </div>
+            <FactoryMap
+              nodes={nodes.map((n) => {
+                const s = statuses.get(n.id);
+                const health = collapsingNodeIds.has(n.id)
+                  ? "unreachable"
+                  : s?.health;
+                const status =
+                  health === "ok"
+                    ? "healthy"
+                    : health === "degraded"
+                      ? "degraded"
+                      : health === "unreachable"
+                        ? "critical"
+                        : "unknown";
+                return {
+                  name: n.label,
+                  status,
+                  uptime_pct:
+                    health === "ok" ? 100 : health === "degraded" ? 70 : 0,
+                };
+              })}
+              history={history}
+            />
+          </div>
+        ) : null}
       </>
       )}
 
