@@ -1,5 +1,5 @@
 'use client';
-import { useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import * as am5 from '@amcharts/amcharts5';
 import * as am5map from '@amcharts/amcharts5/map';
 import am5geodata_worldLow from '@amcharts/amcharts5-geodata/worldLow';
@@ -32,13 +32,18 @@ function matchNode(plantId: string, nodes: NodeStatus[]): NodeStatus | undefined
   return nodes.find(n => n.name?.toLowerCase().includes(plantId) || plantId.includes(n.name?.toLowerCase().split(' ')[0] ?? '____'));
 }
 
-export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[]; history: Map<string, number[]> }) {
+export default function FactoryMapInner({ nodes, history: _history }: { nodes: NodeStatus[]; history: Map<string, number[]> }) {
   const divRef = useRef<HTMLDivElement>(null);
+  const pointSeriesRef = useRef<am5map.MapPointSeries | null>(null);
+  const labelSeriesRef = useRef<am5map.MapPointSeries | null>(null);
 
+  // Build the chart EXACTLY ONCE on mount. Recreating it whenever `nodes`
+  // changes (every poll tick) is what caused the post-zoom "snap-back": React
+  // hands us a new array reference each render, so the effect re-ran,
+  // disposed the chart, and rebuilt it at the default rotation/zoom.
   useLayoutEffect(() => {
     const root = am5.Root.new(divRef.current!);
 
-    // Remove amCharts logo
     (root as unknown as { _logo?: { dispose: () => void } })._logo?.dispose();
 
     const chart = root.container.children.push(
@@ -56,23 +61,19 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       })
     );
 
-    // Nuke goHome so amCharts never snaps back to a "home" state after wheel/drag
     (chart as unknown as { goHome: () => void }).goHome = () => {};
 
-    // After every wheel event, lock homeZoomLevel to where the user landed
     const containerEl = divRef.current!;
     const onWheel = () => {
       chart.set('homeZoomLevel', chart.get('zoomLevel', 1));
     };
     containerEl.addEventListener('wheel', onWheel, { passive: true });
 
-    // Ocean background — pure black
     chart.chartContainer.set('background', am5.Rectangle.new(root, {
       fill: am5.color(0x000000),
       fillOpacity: 1,
     }));
 
-    // Globe sphere (ocean fill)
     const backgroundSeries = chart.series.push(
       am5map.MapPolygonSeries.new(root, { exclude: ['AQ'] })
     );
@@ -82,7 +83,6 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       strokeWidth: 0,
     });
 
-    // Country fills — very dark, barely visible
     const polygonSeries = chart.series.push(
       am5map.MapPolygonSeries.new(root, {
         geoJSON: am5geodata_worldLow,
@@ -99,7 +99,6 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       fill: am5.color(0x162032),
     });
 
-    // Graticule lines (longitude/latitude grid) — very subtle
     const graticuleSeries = chart.series.push(am5map.GraticuleSeries.new(root, {}));
     graticuleSeries.mapLines.template.setAll({
       stroke: am5.color(0x0a1520),
@@ -107,7 +106,6 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       strokeOpacity: 0.5,
     });
 
-    // Supply arc lines — curved geodesics between Dearborn HQ and partner plants
     const lineSeries = chart.series.push(am5map.MapLineSeries.new(root, {
       ...({ lineType: 'curved' } as Record<string, unknown>),
     }));
@@ -135,7 +133,6 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       });
     });
 
-    // Flowing-data dash animation on arcs
     lineSeries.events.on('datavalidated', () => {
       lineSeries.mapLines.each(line => {
         (line.animate as unknown as (opts: {
@@ -150,7 +147,6 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       });
     });
 
-    // ─── Tooltip (shared by markers) ──────────────────────────────────────
     const sharedTooltip = am5.Tooltip.new(root, {
       getFillFromSprite: false,
       labelText: '[bold #ffffff]{plantName}[/]\n[#64748b]{sub}[/]\n[#94a3b8]Status:[/] [{statusColor}]{nodeStatus}[/]   [#ffffff]{health}%[/]',
@@ -163,7 +159,6 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       cornerRadiusBL: 8, cornerRadiusBR: 8,
     }));
 
-    // ─── Point markers ────────────────────────────────────────────────────
     const pointSeries = chart.series.push(
       am5map.MapPointSeries.new(root, {})
     );
@@ -174,13 +169,11 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       const color = am5.color(statusColor(status));
       const container = am5.Container.new(root, {});
 
-      // Scale dot size with chart zoom level
       const zoomLevel = chart.get('zoomLevel', 1);
       const dotRadius = Math.max(3, Math.min(8, 5 * zoomLevel));
       const ringMin = dotRadius + 3;
       const ringMax = dotRadius + 8;
 
-      // Outer pulsing ring
       const ring = container.children.push(am5.Circle.new(root, {
         radius: ringMax,
         fill: color,
@@ -192,7 +185,6 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       ring.animate({ key: 'radius', from: ringMin, to: ringMax, duration: 1200, loops: Infinity, easing: am5.ease.out(am5.ease.cubic) });
       ring.animate({ key: 'strokeOpacity', from: 0.6, to: 0, duration: 1200, loops: Infinity });
 
-      // Inner solid dot — tooltip attaches here
       const dot = container.children.push(am5.Circle.new(root, {
         radius: dotRadius,
         fill: color,
@@ -205,7 +197,6 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       return am5.Bullet.new(root, { sprite: container });
     });
 
-    // ─── Label series (always-visible plant names) ────────────────────────
     const labelSeries = chart.series.push(am5map.MapPointSeries.new(root, {}));
 
     labelSeries.bullets.push((root, _series, dataItem) => {
@@ -230,46 +221,58 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       return am5.Bullet.new(root, { sprite: label });
     });
 
-    // ─── Push plant data to both series ───────────────────────────────────
+    pointSeriesRef.current = pointSeries;
+    labelSeriesRef.current = labelSeries;
+
+    return () => {
+      containerEl.removeEventListener('wheel', onWheel);
+      root.dispose();
+      pointSeriesRef.current = null;
+      labelSeriesRef.current = null;
+    };
+  }, []);
+
+  // Push plant data WITHOUT touching the chart. Runs whenever the parent
+  // hands us a new `nodes` array — every poll tick — but no zoom/rotation
+  // reset because the chart instance is untouched.
+  useEffect(() => {
+    const pointSeries = pointSeriesRef.current;
+    const labelSeries = labelSeriesRef.current;
+    if (!pointSeries || !labelSeries) return;
+
+    pointSeries.data.clear();
+    labelSeries.data.clear();
+
     PLANTS.forEach(plant => {
       const node = matchNode(plant.id, nodes);
       const health = node ? Math.round((node.uptime_pct ?? 100)) : 0;
       const nodeStatus = node?.status ?? 'unknown';
       const color = statusColor(nodeStatus);
       const hexColor = '#' + color.toString(16).padStart(6, '0');
-      const dataPoint = {
+      pointSeries.data.push({
         geometry: { type: 'Point' as const, coordinates: [plant.lon, plant.lat] },
         plantName: plant.name,
         sub: plant.sub,
         nodeStatus,
         health,
         statusColor: hexColor,
-      };
-      pointSeries.data.push(dataPoint);
+      });
       labelSeries.data.push({
         geometry: { type: 'Point' as const, coordinates: [plant.lon, plant.lat] },
         plantName: plant.name,
       });
     });
-
-    return () => {
-      containerEl.removeEventListener('wheel', onWheel);
-      root.dispose();
-    };
   }, [nodes]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000000' }}>
-      {/* Title */}
       <div style={{ position: 'absolute', top: 16, left: 20, zIndex: 10 }}
            className="text-xs tracking-widest text-cyan-400/60 font-mono uppercase">
         Ford North America — Live Operations
       </div>
 
-      {/* Globe */}
       <div ref={divRef} style={{ width: '100%', height: '100%' }} />
 
-      {/* Legend */}
       <div style={{ position: 'absolute', bottom: 16, right: 20, zIndex: 10 }}
            className="flex flex-col gap-1.5">
         {[
