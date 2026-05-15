@@ -48,6 +48,8 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
         panY: 'rotateY',
         wheelY: 'zoom',
         pinchZoom: true,
+        rotationX: 90,
+        rotationY: -35,
         minZoomLevel: 0.8,
         maxZoomLevel: 4,
       })
@@ -239,30 +241,7 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       });
     });
 
-    // ─── Auto-rotate — manual frame-driven increment (no snap-back) ───────
-    let autoRotating = true;
-    let userIdle: ReturnType<typeof setTimeout> | undefined;
-
-    root.events.on('frameended', () => {
-      if (autoRotating) {
-        chart.set('rotationX', chart.get('rotationX', 0) + 0.15);
-      }
-    });
-
-    chart.events.on('pointerdown', () => {
-      autoRotating = false;
-      clearTimeout(userIdle);
-    });
-
-    chart.events.on('pointerup', () => {
-      clearTimeout(userIdle);
-      userIdle = setTimeout(() => {
-        autoRotating = true;
-      }, 4000);
-    });
-
     return () => {
-      clearTimeout(userIdle);
       root.dispose();
     };
   }, [nodes]);
