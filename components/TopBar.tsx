@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { NodeStatus } from "@/lib/types";
 import { isMuted, setMuted } from "@/lib/sounds";
 
@@ -304,96 +305,126 @@ export function TopBar({
         </div>
       </div>
 
-      {/* Scenarios menu — fixed-position portal so it floats above the network graph */}
-      {scenariosOpen ? (
-        <>
-          <div
-            onClick={() => setScenariosOpen(false)}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0,0,0,0.4)",
-              zIndex: 9998,
-            }}
-            aria-hidden
-          />
-          <div
-            role="menu"
-            aria-label="Scenarios"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              position: "fixed",
-              bottom: menuPos?.bottom ?? 64,
-              left: menuPos?.left ?? 16,
-              top: "auto",
-              width: 280,
-              maxHeight: 280,
-              overflowY: "auto",
-              background: "#0a0f1c",
-              border: "1px solid rgba(245,158,11,0.3)",
-              borderRadius: 8,
-              boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
-              zIndex: 9999,
-            }}
-          >
-            {SCENARIO_OPTIONS.map((opt, idx) => (
-              <button
-                key={opt.key}
-                type="button"
-                onClick={() => {
-                  setScenariosOpen(false);
-                  onRunScenario(opt.key);
-                }}
-                disabled={scenarioBusy}
-                style={{
-                  display: "block",
-                  width: "100%",
-                  padding: "12px 16px",
-                  textAlign: "left",
-                  background: "transparent",
-                  border: "none",
-                  borderBottom:
-                    idx < SCENARIO_OPTIONS.length - 1
-                      ? "1px solid rgba(255,255,255,0.06)"
-                      : "none",
-                  cursor: scenarioBusy ? "not-allowed" : "pointer",
-                  opacity: scenarioBusy ? 0.4 : 1,
-                  transition: "background 120ms ease",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "rgba(255,255,255,0.06)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "transparent")
-                }
-              >
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#ffffff",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {opt.short}
-                </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "#94a3b8",
-                    marginTop: 4,
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {opt.label}
-                </div>
-              </button>
-            ))}
-          </div>
-        </>
-      ) : null}
+      {/* Scenarios menu rendered via portal so it escapes the header's
+          backdrop-blur stacking context (otherwise it gets painted under
+          the NetworkGraph below). */}
+      <ScenariosMenu
+        open={scenariosOpen}
+        pos={menuPos}
+        busy={scenarioBusy}
+        onClose={() => setScenariosOpen(false)}
+        onPick={(key) => {
+          setScenariosOpen(false);
+          onRunScenario(key);
+        }}
+      />
     </header>
   );
+}
+
+function ScenariosMenu({
+  open,
+  pos,
+  busy,
+  onClose,
+  onPick,
+}: {
+  open: boolean;
+  pos: { bottom: number; left: number } | null;
+  busy: boolean;
+  onClose: () => void;
+  onPick: (k: ScenarioKey) => void;
+}) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted || !open) return null;
+
+  const body = (
+    <>
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.4)",
+          zIndex: 9998,
+        }}
+        aria-hidden
+      />
+      <div
+        role="menu"
+        aria-label="Scenarios"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: "fixed",
+          bottom: pos?.bottom ?? 64,
+          left: pos?.left ?? 16,
+          top: "auto",
+          width: 280,
+          maxHeight: 280,
+          overflowY: "auto",
+          background: "#0a0f1c",
+          border: "1px solid rgba(245,158,11,0.3)",
+          borderRadius: 8,
+          boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
+          zIndex: 9999,
+        }}
+      >
+        {SCENARIO_OPTIONS.map((opt, idx) => (
+          <button
+            key={opt.key}
+            type="button"
+            onClick={() => onPick(opt.key)}
+            disabled={busy}
+            style={{
+              display: "block",
+              width: "100%",
+              padding: "12px 16px",
+              textAlign: "left",
+              background: "transparent",
+              border: "none",
+              borderBottom:
+                idx < SCENARIO_OPTIONS.length - 1
+                  ? "1px solid rgba(255,255,255,0.06)"
+                  : "none",
+              cursor: busy ? "not-allowed" : "pointer",
+              opacity: busy ? 0.4 : 1,
+              transition: "background 120ms ease",
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.background = "rgba(255,255,255,0.06)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.background = "transparent")
+            }
+          >
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                color: "#ffffff",
+                lineHeight: 1.2,
+              }}
+            >
+              {opt.short}
+            </div>
+            <div
+              style={{
+                fontSize: 12,
+                color: "#94a3b8",
+                marginTop: 4,
+                lineHeight: 1.3,
+              }}
+            >
+              {opt.label}
+            </div>
+          </button>
+        ))}
+      </div>
+    </>
+  );
+
+  return createPortal(body, document.body);
 }
 
 interface CounterProps {
