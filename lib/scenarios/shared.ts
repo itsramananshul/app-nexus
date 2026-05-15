@@ -5,7 +5,7 @@
 import type { CollapseResult, DrainedItem } from "../types";
 import type { NodeConfig } from "../nodes";
 
-const REQUEST_TIMEOUT_MS = 4000;
+const REQUEST_TIMEOUT_MS = 2000;
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
