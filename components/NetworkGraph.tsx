@@ -469,7 +469,7 @@ function NodeCard({
           {ago}
         </span>
       </div>
-      <div className="mt-1 flex justify-end">
+      <div className="mt-1 hidden sm:flex justify-end">
         <Sparkline
           values={history}
           tone={

@@ -18,10 +18,19 @@ import {
   SCENARIO_STAGE_LABELS,
   type ScenarioState,
 } from "@/components/ScenarioController";
-import { TopBar } from "@/components/TopBar";
+import { TopBar, SCENARIO_OPTIONS, type ScenarioKey } from "@/components/TopBar";
 import type { IncidentReport } from "@/components/IncidentReportModal";
+import { ROIPanel, type ROIData } from "@/components/ROIPanel";
+import {
+  AuditTimeline,
+  type AuditEvent,
+  type AuditSeverity,
+  type AuditIncidentMeta,
+} from "@/components/AuditTimeline";
 import { runFactoryCollapse } from "@/lib/collapse";
 import { runRecovery, RECOVERY_STEP_LABELS } from "@/lib/recovery";
+import { runWarehouseOutage } from "@/lib/scenarios/warehouse-outage";
+import { runMaterialsShortage } from "@/lib/scenarios/materials-shortage";
 import { getNodes, primaryMetricFor, type NodeConfig } from "@/lib/nodes";
 import { useNodeKeyOverrides } from "@/lib/nodeKeyOverrides";
 import type {
@@ -122,8 +131,38 @@ export default function Page() {
   const [eraMode, setEraMode] = useState<"after" | "before">("after");
   const [transitionToast, setTransitionToast] = useState<string | null>(null);
 
+  // Scenarios + ROI + Audit
+  const [activeScenario, setActiveScenario] = useState<ScenarioKey | null>(null);
+  const [roiData, setROIData] = useState<ROIData | null>(null);
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
+  const lastPollLogAtRef = useRef<number>(0);
+  const incidentMetaRef = useRef<AuditIncidentMeta>({
+    scenarioLabel: null,
+    triggeredAt: null,
+    resolvedAt: null,
+    affectedNodes: [],
+    productionLoss: 0,
+    emergencyLabor: 0,
+    expeditedShipping: 0,
+  });
+
   // Track when the scenario ended so we can hold the exposure ticker
   const completedAtRef = useRef<number | null>(null);
+
+  const logEvent = useCallback(
+    (severity: AuditSeverity, type: string, message: string) => {
+      const ev: AuditEvent = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        timestamp: new Date(),
+        type,
+        message,
+        severity,
+      };
+      setAuditEvents((prev) => [ev, ...prev].slice(0, 500));
+    },
+    [],
+  );
 
   // Merge localStorage overrides on top of any baseline keys
   const nodes = useMemo<NodeConfig[]>(() => {
@@ -165,6 +204,36 @@ export default function Page() {
   useEffect(() => {
     void requestPermissionOnce();
   }, []);
+
+  // First-load audit event (one-shot once nodes are loaded)
+  const initLoggedRef = useRef(false);
+  useEffect(() => {
+    if (initLoggedRef.current) return;
+    if (!keysLoaded || nodes.length === 0) return;
+    initLoggedRef.current = true;
+    logEvent("info", "loaded", `Nexus initialized · ${nodes.length} nodes connected`);
+  }, [keysLoaded, nodes.length, logEvent]);
+
+  // Throttled poll-success heartbeat (every ~60s)
+  useEffect(() => {
+    if (statuses.size === 0) return;
+    const now = Date.now();
+    if (now - lastPollLogAtRef.current < 60_000) return;
+    lastPollLogAtRef.current = now;
+    let anomalies = 0;
+    for (const s of statuses.values()) {
+      if (s.health !== "ok") anomalies += 1;
+    }
+    if (anomalies === 0) {
+      logEvent("info", "poll", "System poll · all nodes healthy");
+    } else {
+      logEvent(
+        "warning",
+        "poll",
+        `System poll · ${anomalies} ${anomalies === 1 ? "anomaly" : "anomalies"} detected`,
+      );
+    }
+  }, [statuses, logEvent]);
 
   // Track the last 20 primary-metric values per node for sparklines. Runs on
   // every poll tick — appends the new value if changed (or just keeps last).
@@ -436,39 +505,87 @@ export default function Page() {
 
   // Trigger functions — lifted out of ScenarioController / RecoveryPanel so
   // PitchMode can fire them too.
-  const triggerCollapse = useCallback(() => {
-    setSteps(INITIAL_STEPS.map((s) => ({ ...s })));
-    setCurrentStage(0);
-    setScenarioStartedAt(Date.now());
-    setElapsedMs(0);
-    setPeakExposure(0);
-    setCollapseResult(null);
-    completedAtRef.current = null;
-    setScenarioState("executing");
-    alertBeep();
-    void runFactoryCollapse(collapseUrls, collapseApiKeys, {
+  const triggerScenario = useCallback(
+    (key: ScenarioKey) => {
+      setActiveScenario(key);
+      setROIData(null);
+      const opt = SCENARIO_OPTIONS.find((o) => o.key === key);
+      setSteps(INITIAL_STEPS.map((s) => ({ ...s })));
+      setCurrentStage(0);
+      const startedAt = Date.now();
+      setScenarioStartedAt(startedAt);
+      setElapsedMs(0);
+      setPeakExposure(0);
+      setCollapseResult(null);
+      completedAtRef.current = null;
+      setScenarioState("executing");
+      alertBeep();
+      logEvent(
+        "critical",
+        "collapse_triggered",
+        `⚠ Cascade triggered · Scenario: ${opt?.short ?? key}`,
+      );
+      incidentMetaRef.current = {
+        scenarioLabel: opt?.short ?? key,
+        triggeredAt: new Date(startedAt),
+        resolvedAt: null,
+        affectedNodes: SCENARIO_AFFECTED.map((a) => ({
+          id: a.id,
+          label: a.label,
+          location: a.location,
+        })),
+        productionLoss: 0,
+        emergencyLabor: 0,
+        expeditedShipping: 0,
+      };
+
+      const stageCallbacks = {
+        onStepStart,
+        onStepDone: (i: number, label: string) => {
+          onStepDone(i, label);
+          logEvent("info", "collapse_stage", `Stage ${i + 1} complete · ${label}`);
+        },
+        onStepError,
+        onComplete,
+      };
+
+      if (key === "warehouse") {
+        void runWarehouseOutage(nodes, collapseUrls, collapseApiKeys, stageCallbacks);
+      } else if (key === "materials") {
+        void runMaterialsShortage(nodes, collapseUrls, collapseApiKeys, stageCallbacks);
+      } else {
+        void runFactoryCollapse(collapseUrls, collapseApiKeys, stageCallbacks);
+      }
+    },
+    [
+      nodes,
+      collapseUrls,
+      collapseApiKeys,
       onStepStart,
       onStepDone,
       onStepError,
       onComplete,
-    });
-  }, [
-    collapseUrls,
-    collapseApiKeys,
-    onStepStart,
-    onStepDone,
-    onStepError,
-    onComplete,
-  ]);
+      logEvent,
+    ],
+  );
+
+  // Backwards-compat alias for components that still call triggerCollapse
+  const triggerCollapse = useCallback(() => triggerScenario("cascade"), [triggerScenario]);
 
   const triggerRecovery = useCallback(() => {
     if (!collapseResult) return;
     handleRecoveryStart();
+    logEvent("info", "recovery_started", "↺ Recovery initiated");
     setRecovering(true);
     setRecoveryLabel(null);
     void runRecovery(collapseUrls, collapseApiKeys, collapseResult, {
       onStepStart: (i, label) => {
         setRecoveryLabel(label);
+        logEvent(
+          "info",
+          "recovery_stage",
+          `Recovery stage ${i + 1} · ${label}`,
+        );
         handleAlert({
           id: newAlertId(),
           timestamp: new Date(),
@@ -508,6 +625,44 @@ export default function Page() {
         setRecovering(false);
         setRecoveryLabel(null);
         recoveryChime();
+
+        // Compute ROI from the actual collapse result.
+        const drainedTotal = collapseResult.drainedMaterials.reduce(
+          (sum, m) => sum + Math.max(0, m.originalOnHand - m.newOnHand),
+          0,
+        );
+        const productionLoss = Math.round(drainedTotal * 2.4);
+        const expeditedShipping = collapseResult.delayedShipmentIds.length * 1500;
+        const emergencyLabor = 48000;
+        const downtimeMs = Date.now() - scenarioStartedAt;
+        const scenarioOpt = activeScenario
+          ? SCENARIO_OPTIONS.find((o) => o.key === activeScenario)
+          : null;
+        const scenarioLabel = scenarioOpt?.short ?? "Cascade Failure";
+
+        setROIData({
+          scenarioLabel,
+          downtimeMs,
+          productionLoss,
+          emergencyLabor,
+          expeditedShipping,
+        });
+
+        incidentMetaRef.current = {
+          ...incidentMetaRef.current,
+          scenarioLabel,
+          resolvedAt: new Date(),
+          productionLoss,
+          emergencyLabor,
+          expeditedShipping,
+        };
+
+        logEvent(
+          "success",
+          "recovery_complete",
+          `✓ System restored · ${formatDuration(downtimeMs)}`,
+        );
+
         handleAlert({
           id: newAlertId(),
           timestamp: new Date(),
@@ -529,6 +684,9 @@ export default function Page() {
     handleAlert,
     handleRecoveryStart,
     handleRecoveryComplete,
+    activeScenario,
+    scenarioStartedAt,
+    logEvent,
   ]);
 
   const incidentReport: IncidentReport | null = useMemo(() => {
@@ -583,15 +741,23 @@ export default function Page() {
         activeAlerts={activeAlerts}
         eraMode={eraMode}
         onChangeEra={(next) => {
-          // Brief reveal overlay when switching back to the modern view
           if (next === "after" && eraMode === "before") {
             setTransitionToast("This is what OpenPrem replaces.");
+            logEvent("info", "era_toggle", "OpenPrem mode activated");
+          } else if (next === "before" && eraMode === "after") {
+            logEvent("info", "era_toggle", "Legacy mode activated");
           }
           setEraMode(next);
         }}
         onOpenApiKeys={() => setKeysPanelOpen(true)}
         onStartPitch={() => setPitchActive(true)}
         onResetDemo={handleResetDemo}
+        onRunScenario={triggerScenario}
+        onOpenAudit={() => setAuditOpen(true)}
+        activeScenario={activeScenario}
+        scenarioBusy={
+          scenarioState === "executing" || scenarioState === "recovering"
+        }
       />
 
       {eraMode === "before" ? (
@@ -606,7 +772,10 @@ export default function Page() {
             <div className="absolute right-3 top-3 z-20 inline-flex overflow-hidden rounded-md border border-cyan-500/30 bg-[#070b16]/95 text-[10px] font-semibold uppercase tracking-[0.2em] shadow-lg backdrop-blur">
               <button
                 type="button"
-                onClick={() => setViewMode("graph")}
+                onClick={() => {
+                  if (viewMode !== "graph") logEvent("info", "view_toggle", "Switched to Network View");
+                  setViewMode("graph");
+                }}
                 aria-pressed={viewMode === "graph"}
                 className={`px-3 py-1.5 transition-colors ${
                   viewMode === "graph"
@@ -618,7 +787,10 @@ export default function Page() {
               </button>
               <button
                 type="button"
-                onClick={() => setViewMode("map")}
+                onClick={() => {
+                  if (viewMode !== "map") logEvent("info", "view_toggle", "Switched to Map View");
+                  setViewMode("map");
+                }}
                 aria-pressed={viewMode === "map"}
                 className={`border-l border-cyan-500/30 px-3 py-1.5 transition-colors ${
                   viewMode === "map"
@@ -797,6 +969,18 @@ export default function Page() {
           </p>
         </div>
       ) : null}
+
+      <ROIPanel data={roiData} onClose={() => setROIData(null)} />
+
+      <AuditTimeline
+        open={auditOpen}
+        onClose={() => setAuditOpen(false)}
+        events={auditEvents}
+        incident={incidentMetaRef.current}
+        instanceName={
+          process.env.NEXT_PUBLIC_INSTANCE_NAME ?? "openprem-nexus"
+        }
+      />
     </div>
   );
 }
