@@ -100,17 +100,17 @@ export function PitchOverlay({
     >
       <div
         style={{
-          width: "min(720px, 100%)",
-          maxHeight: "calc(100vh - 64px)",
-          overflowY: "auto",
+          width: step === 0 ? "min(1100px, 96vw)" : "min(720px, 100%)",
+          maxHeight: "calc(100vh - 40px)",
+          overflowY: step === 0 ? "hidden" : "auto",
           background: "#0a0a0a",
           border: "1px solid #1a1a1a",
           borderRadius: 16,
           boxShadow: "0 30px 80px rgba(0,0,0,0.7)",
-          padding: 24,
+          padding: step === 0 ? 16 : 24,
           display: "flex",
           flexDirection: "column",
-          gap: 16,
+          gap: step === 0 ? 10 : 16,
         }}
       >
         {/* Header: step dots + close */}
@@ -187,7 +187,7 @@ export function PitchOverlay({
         </div>
 
         {/* Step content */}
-        <div style={{ minHeight: 320 }}>
+        <div style={{ minHeight: step === 0 ? 0 : 320, flex: step === 0 ? 1 : undefined }}>
           {step === 0 ? <BeforeSimulation /> : null}
 
           {step === 1 ? (
