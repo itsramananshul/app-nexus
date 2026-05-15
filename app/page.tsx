@@ -119,6 +119,8 @@ export default function Page() {
   const [peakExposure, setPeakExposure] = useState<number>(0);
   const [collapseResult, setCollapseResult] = useState<CollapseResult | null>(null);
   const [recovering, setRecovering] = useState(false);
+  // Latch: nodes explicitly degraded by scenario stay red even if poller briefly returns ok
+  const [latchedDegradedNodes, setLatchedDegradedNodes] = useState<Set<string>>(new Set());
   const [recoveryLabel, setRecoveryLabel] = useState<string | null>(null);
   const [pitchActive, setPitchActive] = useState(false);
   const [history, setHistory] = useState<Map<string, number[]>>(new Map());
@@ -209,6 +211,28 @@ export default function Page() {
   // this prevents the 401 flicker on first load while keys are still hydrating.
   const pollingNodes = keysLoaded ? nodes : [];
   const statuses = usePoller(pollingNodes, handleAlert);
+
+  // Merge poller statuses with scenario latch — once a node goes red via
+  // scenario, keep it red until recovery clears the latch.
+  const displayStatuses = useMemo(() => {
+    if (latchedDegradedNodes.size === 0) return statuses;
+    const merged = new Map(statuses);
+    for (const nodeId of latchedDegradedNodes) {
+      const existing = merged.get(nodeId);
+      if (existing) {
+        merged.set(nodeId, { ...existing, health: "degraded" });
+      } else {
+        // Node not yet polled — create a placeholder so display shows red
+        merged.set(nodeId, {
+          nodeId,
+          health: "degraded",
+          lastChecked: new Date(),
+          details: {},
+        });
+      }
+    }
+    return merged;
+  }, [statuses, latchedDegradedNodes]);
 
   // Ask for Notification permission once on first load (no-op if already
   // decided). Wrapped so this runs only after hydration on the client.
@@ -318,6 +342,10 @@ export default function Page() {
       );
       setCollapsingNodeId(null);
       const target = STEP_TO_NODE[index];
+      // Latch this node as degraded so poller flickers don't flip it back to green
+      if (target) {
+        setLatchedDegradedNodes((prev) => new Set([...prev, target.id]));
+      }
       handleAlert({
         id: newAlertId(),
         timestamp: new Date(),
@@ -390,6 +418,7 @@ export default function Page() {
   }, []);
 
   const handleReset = useCallback(() => {
+    setLatchedDegradedNodes(new Set()); // clear latch on reset
     setScenarioState("idle");
     setSteps(INITIAL_STEPS.map((s) => ({ ...s })));
     setCurrentStage(-1);
@@ -405,6 +434,7 @@ export default function Page() {
   }, []);
 
   const handleRecoveryComplete = useCallback(() => {
+    setLatchedDegradedNodes(new Set()); // clear latch — recovery restored all nodes
     setScenarioState("nominal");
     setTimeout(() => {
       setScenarioState("idle");
@@ -774,7 +804,7 @@ export default function Page() {
     <div className="flex h-screen flex-col">
       <TopBar
         totalNodes={nodes.length}
-        statuses={statuses}
+        statuses={displayStatuses}
         nodesWithoutKey={nodes.filter((n) => !n.apiKey).length}
         collapsingNodeIds={collapsingNodeIds}
         activeAlerts={activeAlerts}
@@ -836,7 +866,7 @@ export default function Page() {
             >
               <NetworkGraph
                 nodes={nodes}
-                statuses={statuses}
+                statuses={displayStatuses}
                 collapsingNodeIds={collapsingNodeIds}
                 now={now}
                 isLoadingKeys={!keysLoaded}
