@@ -50,10 +50,26 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
         pinchZoom: true,
         rotationX: 90,
         rotationY: -35,
+        animationDuration: 0,
         minZoomLevel: 0.8,
         maxZoomLevel: 4,
       })
     );
+
+    (chart.events.on as unknown as (
+      ev: string,
+      cb: () => void,
+    ) => void)('zoomlevelchanged', () => {
+      chart.set('homeZoomLevel', chart.get('zoomLevel', 1));
+    });
+
+    (chart.events.on as unknown as (
+      ev: string,
+      cb: () => void,
+    ) => void)('rotationchanged', () => {
+      chart.set('homeRotationX', chart.get('rotationX', 90));
+      chart.set('homeRotationY', chart.get('rotationY', -35));
+    });
 
     // Ocean background — pure black
     chart.chartContainer.set('background', am5.Rectangle.new(root, {
