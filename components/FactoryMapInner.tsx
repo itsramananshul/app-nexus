@@ -3,7 +3,12 @@ import { useLayoutEffect, useRef } from 'react';
 import * as am5 from '@amcharts/amcharts5';
 import * as am5map from '@amcharts/amcharts5/map';
 import am5geodata_worldLow from '@amcharts/amcharts5-geodata/worldLow';
-import type { NodeStatus } from '@/lib/types';
+
+type NodeStatus = {
+  name?: string;
+  status?: string;
+  uptime_pct?: number;
+};
 
 const PLANTS = [
   { id: 'dearborn',    name: 'Dearborn, MI',   sub: 'Ford HQ · Rouge Complex', lat: 42.31, lon: -83.18 },
@@ -118,7 +123,7 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       am5map.MapPointSeries.new(root, {})
     );
 
-    pointSeries.bullets.push((root, _series, dataItem: am5.DataItem<{ nodeStatus?: string }>) => {
+    pointSeries.bullets.push((root, _series, dataItem) => {
       const status = (dataItem.dataContext as { nodeStatus?: string } | undefined)?.nodeStatus;
       const color = am5.color(statusColor(status));
       const container = am5.Container.new(root, {});

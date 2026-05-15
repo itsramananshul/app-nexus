@@ -6,7 +6,7 @@ import {
   BlastRadiusPanel,
   type AffectedNode,
 } from "@/components/BlastRadiusPanel";
-import { FactoryMap } from "@/components/FactoryMap";
+import FactoryMap from "@/components/FactoryMap";
 import { LegacyView } from "@/components/LegacyView";
 import { NetworkGraph } from "@/components/NetworkGraph";
 import { NexusApiKeysPanel } from "@/components/NexusApiKeysPanel";
@@ -641,10 +641,26 @@ export default function Page() {
               />
             ) : (
               <FactoryMap
-                nodes={nodes}
-                statuses={statuses}
-                collapsingNodeIds={collapsingNodeIds}
-                isLoadingKeys={!keysLoaded}
+                nodes={nodes.map((n) => {
+                  const s = statuses.get(n.id);
+                  const health = collapsingNodeIds.has(n.id)
+                    ? "unreachable"
+                    : s?.health;
+                  const status =
+                    health === "ok"
+                      ? "healthy"
+                      : health === "degraded"
+                        ? "degraded"
+                        : health === "unreachable"
+                          ? "critical"
+                          : "unknown";
+                  return {
+                    name: n.label,
+                    status,
+                    uptime_pct:
+                      health === "ok" ? 100 : health === "degraded" ? 70 : 0,
+                  };
+                })}
                 history={history}
               />
             )}
