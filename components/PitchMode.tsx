@@ -200,7 +200,7 @@ function FullScreenOverlay({
                   Without OpenPrem
                 </p>
                 <p className="mt-2 text-2xl font-bold text-rose-200">
-                  4-hour delay
+                  45-minute delay
                 </p>
                 <p className="mt-1 text-sm text-slate-300">
                   $2.8M uncontained exposure
@@ -585,7 +585,7 @@ function Step5({
             Traditional approach
           </p>
           <p className="mt-1 text-slate-200">
-            Operations finds out in <strong>4 hours</strong> via phone.
+            Operations finds out in <strong>45 minutes</strong> via phone.
           </p>
         </div>
         <div className="rounded-md border border-cyan-500/20 bg-cyan-500/5 p-3">

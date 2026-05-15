@@ -15,7 +15,7 @@ interface ROIPanelProps {
   onClose: () => void;
 }
 
-const MANUAL_HOURS = 4.5;
+const MANUAL_MINUTES = 45;
 
 function fmtDuration(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -25,12 +25,12 @@ function fmtDuration(ms: number): string {
 }
 
 function fmtSavedTime(downtimeMs: number): string {
-  const manualMs = MANUAL_HOURS * 60 * 60 * 1000;
+  const manualMs = MANUAL_MINUTES * 60 * 1000;
   const saved = Math.max(0, manualMs - downtimeMs);
   const total = Math.floor(saved / 1000);
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  return `${h}h ${String(m).padStart(2, "0")}m`;
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}m ${String(s).padStart(2, "0")}s`;
 }
 
 function fmtMoney(n: number): string {
@@ -82,21 +82,24 @@ export function ROIPanel({ data, onClose }: ROIPanelProps) {
     >
       <div
         style={{
-          background: "#0f172a",
-          border: "1px solid rgba(77,217,172,0.3)",
-          borderRadius: 12,
+          background: "#0a0a0a",
+          border: "1px solid #1a1a1a",
           padding: 20,
-          boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
         }}
         className="rounded-t-xl sm:rounded-xl"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+            <div
+              className="text-[11px] uppercase tracking-[0.12em]"
+              style={{ color: "#444" }}
+            >
               {data.scenarioLabel}
             </div>
-            <div className="mt-0.5 text-sm font-semibold text-white">
-              💰 OpenPrem Recovery Report
+            <div className="mt-0.5 flex items-center gap-2 text-sm" style={{ color: "#fff", fontWeight: 600 }}>
+              <span style={{ color: "#22c55e" }}>✓</span>
+              Recovery complete
             </div>
           </div>
           <button
@@ -106,48 +109,42 @@ export function ROIPanel({ data, onClose }: ROIPanelProps) {
               setTimeout(onClose, 250);
             }}
             aria-label="Close"
-            className="text-slate-500 hover:text-slate-200 text-lg leading-none"
+            style={{ color: "#444" }}
+            className="hover:text-white text-lg leading-none"
           >
             ×
           </button>
         </div>
 
-        <div className="my-3 h-px bg-white/10" />
+        <div
+          style={{ fontSize: 32, fontWeight: 700, color: "#fff", marginTop: 12, letterSpacing: "-0.01em" }}
+        >
+          {fmtMoney(total)} saved
+        </div>
+        <div style={{ fontSize: 12, color: "#555", marginTop: 4 }}>
+          vs. ~45-minute manual recovery
+        </div>
 
-        <dl className="space-y-1.5 text-[11px]">
+        <div style={{ height: 1, background: "#1a1a1a", margin: "16px 0" }} />
+
+        <dl className="space-y-1.5 text-[12px]">
           <Row label="Downtime detected" value={fmtDuration(data.downtimeMs)} />
-          <Row label="Manual resolution" value="~4.5 hours" mute />
-          <Row
-            label="Time saved"
-            value={fmtSavedTime(data.downtimeMs)}
-            highlight
-          />
+          <Row label="Manual estimate" value="~45 min" mute />
+          <Row label="Time saved" value={fmtSavedTime(data.downtimeMs)} highlight />
         </dl>
 
-        <div className="mt-3 text-[10px] uppercase tracking-[0.15em] text-slate-500">
-          Estimated cost avoided
+        <div style={{ height: 1, background: "#1a1a1a", margin: "14px 0" }} />
+
+        <div className="text-[11px] uppercase tracking-[0.1em]" style={{ color: "#444" }}>
+          Cost breakdown
         </div>
-        <dl className="mt-1.5 space-y-1 text-[11px]">
+        <dl className="mt-2 space-y-1 text-[12px]">
           <Row label="Lost production" value={fmtMoney(data.productionLoss)} mute />
           <Row label="Emergency labor" value={fmtMoney(data.emergencyLabor)} mute />
           <Row label="Expedited shipping" value={fmtMoney(data.expeditedShipping)} mute />
         </dl>
 
-        <div className="my-3 h-px bg-white/10" />
-
-        <div className="flex items-baseline justify-between">
-          <span className="text-[10px] uppercase tracking-[0.18em] text-white font-semibold">
-            Total Saved
-          </span>
-          <span
-            className="text-xl font-bold tabular-nums"
-            style={{ color: "#4dd9ac" }}
-          >
-            {fmtMoney(total)}
-          </span>
-        </div>
-
-        <div className="mt-3 text-[9px] uppercase tracking-[0.18em] text-slate-600">
+        <div className="mt-4 text-[11px]" style={{ color: "#444" }}>
           Powered by OpenPrem AI Operations
         </div>
       </div>
@@ -168,12 +165,12 @@ function Row({
 }) {
   return (
     <div className="flex items-baseline justify-between">
-      <dt className={mute ? "text-slate-500" : "text-slate-300"}>{label}</dt>
+      <dt style={{ color: mute ? "#555" : "#888" }}>{label}</dt>
       <dd
         className="font-mono tabular-nums"
         style={{
-          color: highlight ? "#4dd9ac" : mute ? "#94a3b8" : "#ffffff",
-          fontWeight: highlight ? 600 : 400,
+          color: highlight ? "#14b8a6" : mute ? "#888" : "#ffffff",
+          fontWeight: highlight ? 600 : 500,
         }}
       >
         {value}

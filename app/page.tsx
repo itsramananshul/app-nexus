@@ -1,11 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertFeed } from "@/components/AlertFeed";
-import {
-  BlastRadiusPanel,
-  type AffectedNode,
-} from "@/components/BlastRadiusPanel";
+import type { AffectedNode } from "@/components/BlastRadiusPanel";
+import { IncidentPanel } from "@/components/IncidentPanel";
+import { KpiStrip } from "@/components/KpiStrip";
 import FactoryMap from "@/components/FactoryMap";
 import { LegacyView } from "@/components/LegacyView";
 import { NetworkGraph } from "@/components/NetworkGraph";
@@ -128,6 +126,9 @@ export default function Page() {
   const [resetBusy, setResetBusy] = useState(false);
   const [resetToast, setResetToast] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"graph" | "map">("graph");
+  void viewMode;
+  void setViewMode;
+  const [mapVisible, setMapVisible] = useState(true);
   const [eraMode, setEraMode] = useState<"after" | "before">("after");
   const [transitionToast, setTransitionToast] = useState<string | null>(null);
 
@@ -787,59 +788,39 @@ export default function Page() {
         scenarioBusy={
           scenarioState === "executing" || scenarioState === "recovering"
         }
+        mapVisible={mapVisible}
+        onToggleMap={() => setMapVisible((v) => !v)}
       />
 
       {eraMode === "before" ? (
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden" style={{ background: "#000" }}>
           <LegacyView />
         </main>
       ) : (
-      <main className="flex-1 overflow-hidden">
-        <div
-          className="mx-auto h-full max-w-[1600px] px-4 py-3"
-          style={{
-            display: "grid",
-            gap: 12,
-            gridTemplateColumns: blastOpen ? "1fr 240px 300px" : "1fr 240px",
-            gridTemplateRows: "1fr",
-          }}
+      <>
+        <KpiStrip
+          totalNodes={nodes.length}
+          healthyNodes={
+            Array.from(statuses.values()).filter((s) => s.health === "ok").length
+          }
+          estimatedSavings={284_000}
+        />
+        <main
+          className="flex-1 overflow-hidden"
+          style={{ background: "#000" }}
         >
-          <div className="relative h-full min-w-0 overflow-hidden">
-            {/* View toggle — floating top-right of the network panel */}
-            <div className="absolute right-3 top-3 z-20 inline-flex overflow-hidden rounded-md border border-cyan-500/30 bg-[#070b16]/95 text-[10px] font-semibold uppercase tracking-[0.2em] shadow-lg backdrop-blur">
-              <button
-                type="button"
-                onClick={() => {
-                  if (viewMode !== "graph") logEvent("info", "view_toggle", "Switched to Network View");
-                  setViewMode("graph");
-                }}
-                aria-pressed={viewMode === "graph"}
-                className={`px-3 py-1.5 transition-colors ${
-                  viewMode === "graph"
-                    ? "bg-cyan-500/20 text-cyan-200"
-                    : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
-                }`}
-              >
-                <span aria-hidden>⬡</span> Network
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (viewMode !== "map") logEvent("info", "view_toggle", "Switched to Map View");
-                  setViewMode("map");
-                }}
-                aria-pressed={viewMode === "map"}
-                className={`border-l border-cyan-500/30 px-3 py-1.5 transition-colors ${
-                  viewMode === "map"
-                    ? "bg-cyan-500/20 text-cyan-200"
-                    : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
-                }`}
-              >
-                <span aria-hidden>🗺</span> Map
-              </button>
-            </div>
-
-            {viewMode === "graph" ? (
+          <div
+            className="h-full w-full"
+            style={{
+              display: "grid",
+              gridTemplateColumns: mapVisible ? "1fr 240px 300px" : "1fr 300px",
+              gridTemplateRows: "1fr",
+            }}
+          >
+            <div
+              className="relative h-full min-w-0 overflow-hidden"
+              style={{ background: "#000", padding: "12px 16px" }}
+            >
               <NetworkGraph
                 nodes={nodes}
                 statuses={statuses}
@@ -848,55 +829,64 @@ export default function Page() {
                 isLoadingKeys={!keysLoaded}
                 history={history}
               />
-            ) : (
-              <FactoryMap
-                nodes={nodes.map((n) => {
-                  const s = statuses.get(n.id);
-                  const health = collapsingNodeIds.has(n.id)
-                    ? "unreachable"
-                    : s?.health;
-                  const status =
-                    health === "ok"
-                      ? "healthy"
-                      : health === "degraded"
-                        ? "degraded"
-                        : health === "unreachable"
-                          ? "critical"
-                          : "unknown";
-                  return {
-                    name: n.label,
-                    status,
-                    uptime_pct:
-                      health === "ok" ? 100 : health === "degraded" ? 70 : 0,
-                  };
-                })}
-                history={history}
-              />
-            )}
-          </div>
+            </div>
 
-          {/* Sentinel alert feed — middle column, 240px */}
-          <div className="h-full min-w-0 overflow-hidden">
-            <AlertFeed alerts={alerts} />
-          </div>
+            {mapVisible ? (
+              <div
+                className="h-full min-w-0 overflow-hidden"
+                style={{ background: "#000", borderLeft: "1px solid #1a1a1a" }}
+              >
+                <FactoryMap
+                  nodes={nodes.map((n) => {
+                    const s = statuses.get(n.id);
+                    const health = collapsingNodeIds.has(n.id)
+                      ? "unreachable"
+                      : s?.health;
+                    const status =
+                      health === "ok"
+                        ? "healthy"
+                        : health === "degraded"
+                          ? "degraded"
+                          : health === "unreachable"
+                            ? "critical"
+                            : "unknown";
+                    return {
+                      name: n.label,
+                      status,
+                      uptime_pct:
+                        health === "ok" ? 100 : health === "degraded" ? 70 : 0,
+                    };
+                  })}
+                  history={history}
+                />
+              </div>
+            ) : null}
 
-          {/* Blast radius — right column, 300px, only during a scenario */}
-          {blastOpen ? (
-            <BlastRadiusPanel
-              open={blastOpen}
-              currentStage={Math.max(0, currentStage)}
-              totalStages={steps.length}
-              affected={SCENARIO_AFFECTED}
-              recommended={SCENARIO_RECOMMENDED}
-              freezeExposure={
-                scenarioState === "complete" || scenarioState === "recovering"
-                  ? peakExposure
+            <IncidentPanel
+              scenarioName={
+                activeScenario
+                  ? SCENARIO_OPTIONS.find((o) => o.key === activeScenario)?.short ?? "Cascade Failure"
                   : null
               }
+              scenarioState={scenarioState}
+              affected={SCENARIO_AFFECTED}
+              elapsedMs={elapsedMs}
+              recovering={recovering}
+              recoveryProgressPct={
+                recovering
+                  ? Math.round(
+                      (steps.filter((s) => s.status === "done" || s.status === "error").length /
+                        Math.max(1, steps.length)) *
+                        100,
+                    )
+                  : 0
+              }
+              costAvoided={roiData ? roiData.productionLoss + roiData.emergencyLabor + roiData.expeditedShipping : null}
+              onInitiateRecovery={triggerRecovery}
             />
-          ) : null}
-        </div>
-      </main>
+          </div>
+        </main>
+      </>
       )}
 
       {eraMode === "after" ? (

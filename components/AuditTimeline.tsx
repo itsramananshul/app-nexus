@@ -176,7 +176,7 @@ export function AuditTimeline({
     write("RESOLUTION", { bold: true });
     doc.setFontSize(10);
     write("Recovery method:   Automated (OpenPrem AI)");
-    write("Manual time saved: ~4.5 hours");
+    write("Manual time saved: ~45 minutes");
     write("Stages completed:  3/3");
     divider();
 

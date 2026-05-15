@@ -148,18 +148,15 @@ export function NetworkGraph({
   }, [statuses, collapsingNodeIds]);
 
   return (
-    <section className="relative h-full rounded-xl border border-cyan-500/10 bg-[#070b16]/60 p-3">
+    <section className="relative h-full" style={{ background: "#000" }}>
       <header className="mb-2 flex items-center justify-between px-1">
         <div>
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.25em] text-cyan-300">
-            Supply Network · Topology
+          <h2 style={{ fontSize: 11, color: "#888", fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+            Supply Network
           </h2>
-          <p className="text-[10px] text-slate-500">
+          <p style={{ fontSize: 11, color: "#444", marginTop: 2 }}>
             {isLoadingKeys ? (
-              <span className="inline-flex items-center gap-1.5 text-amber-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 pulse-live" />
-                Loading configuration…
-              </span>
+              <span style={{ color: "#f59e0b" }}>Loading configuration…</span>
             ) : (
               `${nodes.length} nodes · live telemetry`
             )}
@@ -168,7 +165,10 @@ export function NetworkGraph({
         <Legend />
       </header>
 
-      <div className="relative h-[calc(100%-2.5rem)] w-full overflow-auto rounded-lg border border-slate-800/60 bg-[#040711] scrollbar-thin">
+      <div
+        className="relative h-[calc(100%-2.5rem)] w-full overflow-auto scrollbar-thin"
+        style={{ background: "#000" }}
+      >
         <div className="relative" style={{ width: 1200, height: 660 }}>
           <svg
             viewBox="0 0 1200 660"
@@ -214,65 +214,35 @@ export function NetworkGraph({
               </marker>
             </defs>
 
-            {/* Grid background */}
-            <g opacity="0.18">
-              {Array.from({ length: 60 }).map((_, i) => (
-                <line
-                  key={`v${i}`}
-                  x1={i * 20}
-                  y1={0}
-                  x2={i * 20}
-                  y2={720}
-                  stroke="#0e1424"
-                  strokeWidth="1"
-                />
-              ))}
-              {Array.from({ length: 36 }).map((_, i) => (
-                <line
-                  key={`h${i}`}
-                  x1={0}
-                  y1={i * 20}
-                  x2={1200}
-                  y2={i * 20}
-                  stroke="#0e1424"
-                  strokeWidth="1"
-                />
-              ))}
-            </g>
+            {/* No grid lines on the dark canvas — Vercel/Linear aesthetic */}
 
-            {/* Connection lines */}
+            {/* Orthogonal (right-angle) connector lines.
+                Route each edge horizontally to the midpoint, then vertically
+                to the target's row, then horizontally into the target. */}
             {edgeStates.map(({ edge, critical, warning }, idx) => {
               const a = hubCenter(edge.from);
               const b = hubCenter(edge.to);
               if (!a || !b) return null;
               const stroke = critical
-                ? "rgba(239,68,68,0.85)"
+                ? "#ef4444"
                 : warning
-                  ? "rgba(245,158,11,0.7)"
-                  : "rgba(0,212,255,0.45)";
-              const cls = critical
-                ? "flow-line-fast"
-                : warning
-                  ? "flow-line-fast"
-                  : "flow-line";
-              const marker = critical
-                ? "url(#arrow-red)"
-                : warning
-                  ? "url(#arrow-amber)"
-                  : "url(#arrow-cyan)";
+                  ? "#f59e0b"
+                  : "#1a1a1a";
+              const strokeWidth = critical || warning ? 1.5 : 1.5;
+              const midX = (a.x + b.x) / 2;
+              const d = `M ${a.x} ${a.y} H ${midX} V ${b.y} H ${b.x}`;
               return (
-                <line
-                  key={idx}
-                  x1={a.x}
-                  y1={a.y}
-                  x2={b.x}
-                  y2={b.y}
-                  stroke={stroke}
-                  strokeWidth={critical ? 2 : 1.5}
-                  className={cls}
-                  markerEnd={marker}
-                  opacity={critical ? 0.95 : warning ? 0.85 : 0.65}
-                />
+                <g key={idx}>
+                  <path
+                    d={d}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={critical ? "5 3" : undefined}
+                  />
+                  {/* Junction dot at the branching point */}
+                  <circle cx={midX} cy={a.y} r={2} fill={stroke} />
+                </g>
               );
             })}
 
@@ -374,41 +344,42 @@ function NodeCard({
   const health = status?.health;
   const noKey = !hasKey;
 
-  let borderCls = "border-slate-700/70";
-  let glowCls = "";
-  let dotCls = "bg-slate-500";
+  // Vercel-dark palette — no glow, no colored fills, just a status dot and
+  // a subtle border that turns the status color on warning/error.
+  let borderColor = "#1e1e1e";
+  let dotColor = "#2a2a2a";
   let stateLabel = "—";
+  let dotPulse = false;
+  let sparklineColor = "#444444";
+
   if (loading) {
-    borderCls = "border-slate-700/40 border-dashed";
-    glowCls = "opacity-60";
-    dotCls = "bg-slate-500 pulse-live";
+    dotColor = "#2a2a2a";
+    dotPulse = true;
     stateLabel = "LOADING";
   } else if (noKey) {
-    // Subtle: keep the same default border, just a gray dot with a tooltip.
-    // The aggressive dashed-border + "Add key →" treatment was overstating
-    // the issue and breaking the card layout during scenario selection.
-    borderCls = "border-slate-700/70";
-    dotCls = "bg-slate-600";
+    dotColor = "#2a2a2a";
     stateLabel = "No API key — configure in API Keys panel";
   } else if (collapsing) {
-    borderCls = "border-rose-500/70";
-    glowCls = "pulse-critical";
-    dotCls = "bg-rose-500";
+    borderColor = "#ef4444";
+    dotColor = "#ef4444";
+    dotPulse = true;
+    sparklineColor = "#ef4444";
     stateLabel = "COLLAPSING";
   } else if (health === "ok") {
-    borderCls = "border-emerald-500/40";
-    glowCls = "glow-emerald-box";
-    dotCls = "bg-emerald-400";
+    dotColor = "#22c55e";
+    sparklineColor = "#22c55e";
     stateLabel = "OK";
   } else if (health === "degraded") {
-    borderCls = "border-amber-500/60";
-    glowCls = "glow-amber-box";
-    dotCls = "bg-amber-400 pulse-live";
+    borderColor = "#f59e0b";
+    dotColor = "#f59e0b";
+    dotPulse = true;
+    sparklineColor = "#f59e0b";
     stateLabel = "DEGRADED";
   } else if (health === "unreachable") {
-    borderCls = "border-rose-500/60";
-    glowCls = "glow-red-box pulse-live";
-    dotCls = "bg-rose-400 pulse-live";
+    borderColor = "#ef4444";
+    dotColor = "#ef4444";
+    dotPulse = true;
+    sparklineColor = "#ef4444";
     stateLabel = "UNREACHABLE";
   }
 
@@ -421,66 +392,84 @@ function NodeCard({
 
   return (
     <div
-      className={`absolute overflow-hidden rounded-md border bg-[#0a1322]/95 px-2.5 py-1.5 transition-shadow ${borderCls} ${glowCls}`}
+      className="absolute overflow-hidden transition-colors"
       style={{
         left: pos.x,
         top: pos.y,
         width: NODE_W,
         height: NODE_H,
         zIndex: 1,
+        background: "#0a0a0a",
+        border: `1px solid ${borderColor}`,
+        borderRadius: 8,
+        padding: 12,
       }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "#0f0f0f";
+        if (borderColor === "#1e1e1e")
+          e.currentTarget.style.borderColor = "#2a2a2a";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "#0a0a0a";
+        e.currentTarget.style.borderColor = borderColor;
+      }}
+      title={stateLabel}
     >
-      <div className="flex items-center justify-between gap-1.5">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span aria-hidden className="text-[13px] leading-none">
-            {NODE_TYPE_EMOJI[node.type]}
-          </span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            aria-hidden
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: "50%",
+              background: dotColor,
+              flexShrink: 0,
+            }}
+            className={dotPulse ? "pulse-live" : undefined}
+          />
           <div className="min-w-0">
-            <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-slate-100">
+            <p
+              className="truncate"
+              style={{ fontSize: 13, color: "#fff", fontWeight: 500, lineHeight: 1.2 }}
+            >
               {node.label}
             </p>
-            <p className="truncate text-[9px] text-slate-400">{node.location}</p>
+            <p className="truncate" style={{ fontSize: 11, color: "#555", marginTop: 2 }}>
+              {node.location}
+            </p>
           </div>
         </div>
-        <span
-          className={`h-2 w-2 shrink-0 rounded-full ${dotCls}`}
-          aria-label={stateLabel}
-          title={stateLabel}
-        />
       </div>
-      <div className="mt-1 flex items-center justify-between gap-1.5">
+      <div className="mt-2 flex items-center justify-between gap-2">
         <div className="min-w-0 flex-1 truncate">
           {primary.value !== null ? (
-            <span className="font-mono text-[14px] font-bold leading-none tabular-nums text-cyan-300">
+            <span
+              className="font-mono tabular-nums"
+              style={{ fontSize: 13, color: "#fff", fontWeight: 500 }}
+            >
               {primary.value}
             </span>
           ) : (
-            <span className="font-mono text-[10px] text-slate-500">
+            <span className="font-mono" style={{ fontSize: 11, color: "#555" }}>
               {stateLabel === "LOADING" ? "Loading…" : "—"}
             </span>
           )}
           {secondary ? (
-            <span className="ml-1.5 font-mono text-[9px] text-rose-300">
+            <span className="ml-1.5 font-mono" style={{ fontSize: 11, color: "#666" }}>
               · {secondary.value} {secondary.label}
             </span>
           ) : null}
         </div>
-        <span className="shrink-0 font-mono text-[8px] tabular-nums text-slate-500">
+        <span className="shrink-0 font-mono tabular-nums" style={{ fontSize: 11, color: "#444" }}>
           {ago}
         </span>
       </div>
-      <div className="mt-1 hidden sm:flex justify-end">
-        <Sparkline
-          values={history}
-          tone={
-            collapsing || health === "unreachable"
-              ? "#ef4444"
-              : health === "degraded"
-                ? "#f59e0b"
-                : "#22d3ee"
-          }
-        />
-      </div>
+      {!noKey && !loading ? (
+        <div className="mt-1 hidden sm:flex justify-end" style={{ overflow: "hidden" }}>
+          <Sparkline values={history} tone={sparklineColor} />
+        </div>
+      ) : null}
     </div>
   );
 }
