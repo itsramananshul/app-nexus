@@ -47,6 +47,7 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
         panX: 'rotateX',
         panY: 'rotateY',
         wheelY: 'zoom',
+        pinchZoom: true,
         minZoomLevel: 0.8,
         maxZoomLevel: 4,
       })
@@ -93,19 +94,22 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       strokeOpacity: 0.5,
     });
 
-    // Supply arc lines: Dearborn ↔ Romeo, Dearborn ↔ Flat Rock, Dearborn ↔ Cleveland, Dearborn ↔ Chicago
-    const lineSeries = chart.series.push(am5map.MapLineSeries.new(root, {}));
+    // Supply arc lines — curved geodesics between Dearborn HQ and partner plants
+    const lineSeries = chart.series.push(am5map.MapLineSeries.new(root, {
+      ...({ lineType: 'curved' } as Record<string, unknown>),
+    }));
     lineSeries.mapLines.template.setAll({
       stroke: am5.color(0x38bdf8),
-      strokeWidth: 1,
-      strokeOpacity: 0.35,
-      strokeDasharray: [3, 5],
+      strokeWidth: 1.5,
+      strokeOpacity: 0.5,
+      strokeDasharray: [4, 4],
     });
     const arcPairs: [string, string][] = [
       ['dearborn', 'romeo'],
       ['dearborn', 'flat-rock'],
       ['dearborn', 'cleveland'],
       ['dearborn', 'chicago'],
+      ['dearborn', 'louisville'],
     ];
     arcPairs.forEach(([a, b]) => {
       const pa = PLANTS.find(p => p.id === a)!;
@@ -118,45 +122,27 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       });
     });
 
-    // Point markers
-    const pointSeries = chart.series.push(
-      am5map.MapPointSeries.new(root, {})
-    );
-
-    pointSeries.bullets.push((root, _series, dataItem) => {
-      const status = (dataItem.dataContext as { nodeStatus?: string } | undefined)?.nodeStatus;
-      const color = am5.color(statusColor(status));
-      const container = am5.Container.new(root, {});
-
-      // Outer pulsing ring
-      const ring = container.children.push(am5.Circle.new(root, {
-        radius: 10,
-        fill: color,
-        fillOpacity: 0,
-        stroke: color,
-        strokeWidth: 1.5,
-        strokeOpacity: 0.6,
-      }));
-      ring.animate({ key: 'radius', from: 8, to: 14, duration: 1200, loops: Infinity, easing: am5.ease.out(am5.ease.cubic) });
-      ring.animate({ key: 'strokeOpacity', from: 0.6, to: 0, duration: 1200, loops: Infinity });
-
-      // Inner solid dot
-      container.children.push(am5.Circle.new(root, {
-        radius: 5,
-        fill: color,
-        strokeWidth: 0,
-        tooltipText: '[bold]{plantName}[/]\n[#94a3b8]{sub}[/]\n[{statusColor}]{nodeStatus}[/]  {health}%',
-      }));
-
-      return am5.Bullet.new(root, { sprite: container });
+    // Flowing-data dash animation on arcs
+    lineSeries.events.on('datavalidated', () => {
+      lineSeries.mapLines.each(line => {
+        (line.animate as unknown as (opts: {
+          key: string; from: number; to: number; duration: number; loops: number;
+        }) => unknown)({
+          key: 'strokeDashoffset',
+          from: 0,
+          to: -20,
+          duration: 1000,
+          loops: Infinity,
+        });
+      });
     });
 
-    // Tooltip styling
-    pointSeries.set('tooltip', am5.Tooltip.new(root, {
+    // ─── Tooltip (shared by markers) ──────────────────────────────────────
+    const sharedTooltip = am5.Tooltip.new(root, {
       getFillFromSprite: false,
       labelText: '[bold #ffffff]{plantName}[/]\n[#64748b]{sub}[/]\n[#94a3b8]Status:[/] [{statusColor}]{nodeStatus}[/]   [#ffffff]{health}%[/]',
-    }));
-    pointSeries.get('tooltip')!.set('background', am5.RoundedRectangle.new(root, {
+    });
+    sharedTooltip.set('background', am5.RoundedRectangle.new(root, {
       fill: am5.color(0x0f172a),
       stroke: am5.color(0x334155),
       strokeWidth: 1,
@@ -164,51 +150,119 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       cornerRadiusBL: 8, cornerRadiusBR: 8,
     }));
 
-    // Push plant data
+    // ─── Point markers ────────────────────────────────────────────────────
+    const pointSeries = chart.series.push(
+      am5map.MapPointSeries.new(root, {})
+    );
+    pointSeries.set('tooltip', sharedTooltip);
+
+    pointSeries.bullets.push((root, _series, dataItem) => {
+      const status = (dataItem.dataContext as { nodeStatus?: string } | undefined)?.nodeStatus;
+      const color = am5.color(statusColor(status));
+      const container = am5.Container.new(root, {});
+
+      // Scale dot size with chart zoom level
+      const zoomLevel = chart.get('zoomLevel', 1);
+      const dotRadius = Math.max(3, Math.min(8, 5 * zoomLevel));
+      const ringMin = dotRadius + 3;
+      const ringMax = dotRadius + 8;
+
+      // Outer pulsing ring
+      const ring = container.children.push(am5.Circle.new(root, {
+        radius: ringMax,
+        fill: color,
+        fillOpacity: 0,
+        stroke: color,
+        strokeWidth: 1.5,
+        strokeOpacity: 0.6,
+      }));
+      ring.animate({ key: 'radius', from: ringMin, to: ringMax, duration: 1200, loops: Infinity, easing: am5.ease.out(am5.ease.cubic) });
+      ring.animate({ key: 'strokeOpacity', from: 0.6, to: 0, duration: 1200, loops: Infinity });
+
+      // Inner solid dot — tooltip attaches here
+      const dot = container.children.push(am5.Circle.new(root, {
+        radius: dotRadius,
+        fill: color,
+        strokeWidth: 0,
+        tooltipText: '[bold #ffffff]{plantName}[/]\n[#64748b]{sub}[/]\nStatus: [{statusColor}]{nodeStatus}[/]   Health: [bold #ffffff]{health}%[/]',
+        cursorOverStyle: 'pointer',
+      }));
+      dot.set('tooltip', sharedTooltip);
+
+      return am5.Bullet.new(root, { sprite: container });
+    });
+
+    // ─── Label series (always-visible plant names) ────────────────────────
+    const labelSeries = chart.series.push(am5map.MapPointSeries.new(root, {}));
+
+    labelSeries.bullets.push((root, _series, dataItem) => {
+      const plantName = (dataItem.dataContext as { plantName?: string } | undefined)?.plantName ?? '';
+      const label = am5.Label.new(root, {
+        text: plantName,
+        fill: am5.color(0xffffff),
+        fontSize: 11,
+        fontFamily: 'monospace',
+        centerX: am5.p50,
+        dy: -18,
+        background: am5.RoundedRectangle.new(root, {
+          fill: am5.color(0x0f172a),
+          fillOpacity: 0.75,
+          cornerRadiusTL: 4, cornerRadiusTR: 4,
+          cornerRadiusBL: 4, cornerRadiusBR: 4,
+        }),
+        paddingTop: 2, paddingBottom: 2,
+        paddingLeft: 6, paddingRight: 6,
+        populateText: true,
+      });
+      return am5.Bullet.new(root, { sprite: label });
+    });
+
+    // ─── Push plant data to both series ───────────────────────────────────
     PLANTS.forEach(plant => {
       const node = matchNode(plant.id, nodes);
       const health = node ? Math.round((node.uptime_pct ?? 100)) : 0;
       const nodeStatus = node?.status ?? 'unknown';
       const color = statusColor(nodeStatus);
       const hexColor = '#' + color.toString(16).padStart(6, '0');
-      pointSeries.data.push({
-        geometry: { type: 'Point', coordinates: [plant.lon, plant.lat] },
+      const dataPoint = {
+        geometry: { type: 'Point' as const, coordinates: [plant.lon, plant.lat] },
         plantName: plant.name,
         sub: plant.sub,
         nodeStatus,
         health,
         statusColor: hexColor,
+      };
+      pointSeries.data.push(dataPoint);
+      labelSeries.data.push({
+        geometry: { type: 'Point' as const, coordinates: [plant.lon, plant.lat] },
+        plantName: plant.name,
       });
     });
 
-    // Auto-rotate — stop on user interaction, resume after 3s
-    let resumeTimer: ReturnType<typeof setTimeout>;
-    const animation = chart.animate({
-      key: 'rotationX',
-      from: chart.get('rotationX', 0),
-      to: chart.get('rotationX', 0) + 360,
-      duration: 40000,
-      loops: Infinity,
+    // ─── Auto-rotate — manual frame-driven increment (no snap-back) ───────
+    let autoRotating = true;
+    let userIdle: ReturnType<typeof setTimeout> | undefined;
+
+    root.events.on('frameended', () => {
+      if (autoRotating) {
+        chart.set('rotationX', chart.get('rotationX', 0) + 0.15);
+      }
     });
+
     chart.events.on('pointerdown', () => {
-      animation?.stop();
-      clearTimeout(resumeTimer);
+      autoRotating = false;
+      clearTimeout(userIdle);
     });
+
     chart.events.on('pointerup', () => {
-      clearTimeout(resumeTimer);
-      resumeTimer = setTimeout(() => {
-        chart.animate({
-          key: 'rotationX',
-          from: chart.get('rotationX', 0),
-          to: chart.get('rotationX', 0) + 360,
-          duration: 40000,
-          loops: Infinity,
-        });
-      }, 3000);
+      clearTimeout(userIdle);
+      userIdle = setTimeout(() => {
+        autoRotating = true;
+      }, 4000);
     });
 
     return () => {
-      clearTimeout(resumeTimer);
+      clearTimeout(userIdle);
       root.dispose();
     };
   }, [nodes]);
