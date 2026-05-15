@@ -64,7 +64,7 @@ export function TopBar({
   const [clock, setClock] = useState<Date>(new Date());
   const [muted, setMutedState] = useState<boolean>(false);
   const [scenariosOpen, setScenariosOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState<{ bottom: number; left: number } | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const scenariosButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
@@ -95,16 +95,16 @@ export function TopBar({
   const recomputeMenuPosition = () => {
     if (!scenariosButtonRef.current) return;
     const rect = scenariosButtonRef.current.getBoundingClientRect();
-    // Open UPWARD so the menu lives above the TopBar instead of covering the
-    // NetworkGraph below it. Align the menu's left edge with the button's
-    // left edge, clamped to keep it on-screen with the 280px width.
+    // The TopBar is at the very top of the page — there's no room above the
+    // button, so open DOWNWARD. The menu lives in a portal at the document
+    // root with z-index 9999, so it floats above the NetworkGraph cleanly.
     const width = 280;
     const left = Math.min(
       Math.max(8, rect.left),
       window.innerWidth - width - 8,
     );
     setMenuPos({
-      bottom: Math.max(8, window.innerHeight - rect.top + 8),
+      top: rect.bottom + 8,
       left,
     });
   };
@@ -330,7 +330,7 @@ function ScenariosMenu({
   onPick,
 }: {
   open: boolean;
-  pos: { bottom: number; left: number } | null;
+  pos: { top: number; left: number } | null;
   busy: boolean;
   onClose: () => void;
   onPick: (k: ScenarioKey) => void;
@@ -357,9 +357,8 @@ function ScenariosMenu({
         onClick={(e) => e.stopPropagation()}
         style={{
           position: "fixed",
-          bottom: pos?.bottom ?? 64,
+          top: pos?.top ?? 60,
           left: pos?.left ?? 16,
-          top: "auto",
           width: 280,
           maxHeight: 280,
           overflowY: "auto",
