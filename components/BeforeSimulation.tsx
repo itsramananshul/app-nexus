@@ -112,10 +112,8 @@ export function BeforeSimulation() {
 
   return (
     <div
+      className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_240px]"
       style={{
-        display: "grid",
-        gridTemplateColumns: "minmax(0, 1fr) 240px",
-        gap: 12,
         background: "#c0c0c0",
         color: "#000",
         fontFamily: '"Courier New", "Lucida Console", monospace',

@@ -115,14 +115,18 @@ export function TopBar({
 
       <div style={{ flex: 1 }} />
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div className="flex items-center gap-2 flex-wrap justify-end">
         {!pitchActive ? (
           <>
-            <EraToggle eraMode={eraMode} onChange={onChangeEra} />
+            <span className="hidden md:inline-flex">
+              <EraToggle eraMode={eraMode} onChange={onChangeEra} />
+            </span>
 
-            <GhostButton onClick={onOpenApiKeys} title="API Keys">
-              API Keys
-            </GhostButton>
+            <span className="hidden lg:inline-flex">
+              <GhostButton onClick={onOpenApiKeys} title="API Keys">
+                API Keys
+              </GhostButton>
+            </span>
 
             <GhostButton
               buttonRef={scenariosButtonRef}
@@ -139,25 +143,31 @@ export function TopBar({
               Scenarios
               <span style={{ marginLeft: 6, color: "#666" }}>▾</span>
               {activeScenario ? (
-                <span style={{ marginLeft: 6, color: "#14b8a6" }}>· active</span>
+                <span style={{ marginLeft: 6, color: "#14b8a6" }} className="hidden sm:inline">· active</span>
               ) : null}
             </GhostButton>
 
-            <GhostButton onClick={onOpenAudit} title="Open audit timeline">
-              Audit
-            </GhostButton>
+            <span className="hidden md:inline-flex">
+              <GhostButton onClick={onOpenAudit} title="Open audit timeline">
+                Audit
+              </GhostButton>
+            </span>
 
-            <GhostButton
-              onClick={onToggleMap}
-              active={mapVisible}
-              title="Toggle map"
-            >
-              Map
-            </GhostButton>
+            <span className="hidden sm:inline-flex">
+              <GhostButton
+                onClick={onToggleMap}
+                active={mapVisible}
+                title="Toggle map"
+              >
+                Map
+              </GhostButton>
+            </span>
 
-            <GhostButton onClick={onResetDemo} title="Reset demo data">
-              Reset
-            </GhostButton>
+            <span className="hidden lg:inline-flex">
+              <GhostButton onClick={onResetDemo} title="Reset demo data">
+                Reset
+              </GhostButton>
+            </span>
           </>
         ) : null}
 

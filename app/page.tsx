@@ -852,16 +852,9 @@ export default function Page() {
           className="flex-1 overflow-hidden"
           style={{ background: "#000" }}
         >
-          <div
-            className="h-full w-full"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 300px",
-              gridTemplateRows: "1fr",
-            }}
-          >
+          <div className="h-full w-full grid grid-cols-1 grid-rows-[auto_auto] overflow-y-auto lg:grid-cols-[1fr_300px] lg:grid-rows-[1fr] lg:overflow-hidden">
             <div
-              className="relative h-full min-w-0 overflow-hidden"
+              className="relative min-w-0 overflow-hidden h-[60vh] lg:h-full"
               style={{ background: "#000", padding: "12px 16px" }}
             >
               <NetworkGraph
@@ -874,14 +867,12 @@ export default function Page() {
               />
             </div>
 
-            {/* Right column — incident panel on top, globe pinned below */}
+            {/* Right column — incident panel on top, globe pinned below.
+                On <lg viewports, becomes a full-width strip below the graph
+                with a top border instead of a left border. */}
             <div
+              className="flex w-full flex-col border-t border-[#1a1a1a] lg:w-[300px] lg:h-full lg:border-t-0 lg:border-l"
               style={{
-                width: 300,
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-                borderLeft: "1px solid #1a1a1a",
                 background: "#0a0a0a",
               }}
             >

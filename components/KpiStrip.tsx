@@ -18,13 +18,10 @@ export function KpiStrip({
 }: KpiStripProps) {
   return (
     <div
+      className="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-3 md:gap-6 md:px-6"
       style={{
         background: "#0a0a0a",
         borderBottom: "1px solid #1a1a1a",
-        padding: "12px 24px",
-        display: "grid",
-        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-        gap: 24,
       }}
     >
       <Stat
