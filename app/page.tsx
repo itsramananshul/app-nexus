@@ -795,8 +795,16 @@ export default function Page() {
         </main>
       ) : (
       <main className="flex-1 overflow-hidden">
-        <div className="mx-auto flex h-full max-w-[1600px] gap-3 px-4 py-3">
-          <div className="relative grid h-full flex-1 grid-cols-1 gap-3 lg:grid-cols-[62fr_38fr]">
+        <div
+          className="mx-auto h-full max-w-[1600px] px-4 py-3"
+          style={{
+            display: "grid",
+            gap: 12,
+            gridTemplateColumns: blastOpen ? "1fr 240px 300px" : "1fr 240px",
+            gridTemplateRows: "1fr",
+          }}
+        >
+          <div className="relative h-full min-w-0 overflow-hidden">
             {/* View toggle — floating top-right of the network panel */}
             <div className="absolute right-3 top-3 z-20 inline-flex overflow-hidden rounded-md border border-cyan-500/30 bg-[#070b16]/95 text-[10px] font-semibold uppercase tracking-[0.2em] shadow-lg backdrop-blur">
               <button
@@ -865,8 +873,14 @@ export default function Page() {
                 history={history}
               />
             )}
+          </div>
+
+          {/* Sentinel alert feed — middle column, 240px */}
+          <div className="h-full min-w-0 overflow-hidden">
             <AlertFeed alerts={alerts} />
           </div>
+
+          {/* Blast radius — right column, 300px, only during a scenario */}
           {blastOpen ? (
             <BlastRadiusPanel
               open={blastOpen}

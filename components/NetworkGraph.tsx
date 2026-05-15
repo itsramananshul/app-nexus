@@ -25,32 +25,32 @@ const NODE_H = 88;
 
 const POSITIONS: Record<string, NodePos> = {
   // Top — Factory 1 + Factory 3
-  "f1-product": { x: 70, y: 30 },
-  "f1-materials": { x: 240, y: 30 },
-  "f3-product": { x: 830, y: 30 },
-  "f3-materials": { x: 1000, y: 30 },
+  "f1-product": { x: 70, y: 20 },
+  "f1-materials": { x: 240, y: 20 },
+  "f3-product": { x: 830, y: 20 },
+  "f3-materials": { x: 1000, y: 20 },
   // Warehouses
-  "w1-product": { x: 390, y: 240 },
-  "w2-product": { x: 730, y: 240 },
+  "w1-product": { x: 390, y: 200 },
+  "w2-product": { x: 730, y: 200 },
   // Corporate apps
-  "corp-orders": { x: 320, y: 460 },
-  "corp-shipments": { x: 480, y: 460 },
-  "corp-support": { x: 640, y: 460 },
-  "corp-erp": { x: 800, y: 460 },
+  "corp-orders": { x: 320, y: 380 },
+  "corp-shipments": { x: 480, y: 380 },
+  "corp-support": { x: 640, y: 380 },
+  "corp-erp": { x: 800, y: 380 },
   // Bottom — Factory 2 + Factory 4
-  "f2-product": { x: 70, y: 640 },
-  "f2-materials": { x: 240, y: 640 },
-  "f4-product": { x: 830, y: 640 },
-  "f4-materials": { x: 1000, y: 640 },
+  "f2-product": { x: 70, y: 560 },
+  "f2-materials": { x: 240, y: 560 },
+  "f4-product": { x: 830, y: 560 },
+  "f4-materials": { x: 1000, y: 560 },
 };
 
 // Virtual hubs (visual aggregators, not real nodes)
 const HUB_POS: Record<string, NodePos> = {
-  "factory-1": { x: 230, y: 140 },
-  "factory-3": { x: 990, y: 140 },
-  "factory-2": { x: 230, y: 580 },
-  "factory-4": { x: 990, y: 580 },
-  "corporate": { x: 600, y: 360 },
+  "factory-1": { x: 230, y: 120 },
+  "factory-3": { x: 990, y: 120 },
+  "factory-2": { x: 230, y: 510 },
+  "factory-4": { x: 990, y: 510 },
+  "corporate": { x: 600, y: 300 },
 };
 
 // Connection edges. `from` and `to` can reference real nodes (by id) or hub ids.
@@ -169,11 +169,11 @@ export function NetworkGraph({
       </header>
 
       <div className="relative h-[calc(100%-2.5rem)] w-full overflow-auto rounded-lg border border-slate-800/60 bg-[#040711] scrollbar-thin">
-        <div className="relative" style={{ width: 1200, height: 720 }}>
+        <div className="relative" style={{ width: 1200, height: 660 }}>
           <svg
-            viewBox="0 0 1200 720"
+            viewBox="0 0 1200 660"
             width="1200"
-            height="720"
+            height="660"
             className="absolute inset-0"
             style={{ zIndex: 0 }}
             preserveAspectRatio="xMidYMid meet"

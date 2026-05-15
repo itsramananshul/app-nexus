@@ -99,7 +99,7 @@ export function BlastRadiusPanel({
     <aside
       role="complementary"
       aria-label="Blast radius analysis"
-      className="panel-enter flex h-full w-[380px] shrink-0 flex-col gap-3 overflow-y-auto border-l border-rose-500/20 bg-[#070b16] p-4 scrollbar-thin"
+      className="panel-enter flex h-full min-w-0 flex-col gap-3 overflow-y-auto border-l border-rose-500/20 bg-[#070b16] p-4 scrollbar-thin"
     >
       <header>
         <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-rose-300">
@@ -114,7 +114,7 @@ export function BlastRadiusPanel({
         <p className="text-[10px] uppercase tracking-[0.2em] text-rose-300/80">
           Financial Exposure
         </p>
-        <p className="mt-1 font-mono text-3xl font-bold tabular-nums text-rose-300">
+        <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-rose-300 truncate" title={formatCurrency(exposure)}>
           {formatCurrency(exposure)}
         </p>
         <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-800">
@@ -169,13 +169,16 @@ export function BlastRadiusPanel({
             affected.map((n) => {
               const s = SEVERITY_STYLES[n.severity];
               return (
-                <li key={n.id} className="flex items-center gap-2">
-                  <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
-                  <span className="flex-1 text-[11px] text-slate-200">
+                <li key={n.id} className="flex items-center gap-2 min-w-0">
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${s.dot}`} />
+                  <span
+                    className="flex-1 min-w-0 truncate text-[11px] text-slate-200"
+                    title={`${n.location} · ${n.label}`}
+                  >
                     {n.location} · <span className="text-slate-400">{n.label}</span>
                   </span>
                   <span
-                    className={`font-mono text-[9px] uppercase tracking-wider ${s.cls}`}
+                    className={`shrink-0 font-mono text-[9px] uppercase tracking-wider ${s.cls}`}
                   >
                     {s.label}
                   </span>
