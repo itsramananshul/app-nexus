@@ -49,12 +49,11 @@ export function IncidentPanel({
         aria-label="No incident"
         style={{
           background: "#0a0a0a",
-          borderLeft: "1px solid #1a1a1a",
-          height: "100%",
           padding: 24,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          minHeight: 200,
         }}
       >
         <div style={{ textAlign: "center" }}>
@@ -91,9 +90,6 @@ export function IncidentPanel({
       aria-label="Incident & recovery"
       style={{
         background: "#0a0a0a",
-        borderLeft: "1px solid #1a1a1a",
-        height: "100%",
-        overflowY: "auto",
         padding: 20,
         display: "flex",
         flexDirection: "column",

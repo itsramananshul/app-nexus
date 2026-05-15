@@ -266,11 +266,6 @@ export default function FactoryMapInner({ nodes, history: _history }: { nodes: N
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000000' }}>
-      <div style={{ position: 'absolute', top: 16, left: 20, zIndex: 10 }}
-           className="text-xs tracking-widest text-cyan-400/60 font-mono uppercase">
-        Ford North America — Live Operations
-      </div>
-
       <div ref={divRef} style={{ width: '100%', height: '100%' }} />
 
       <div style={{ position: 'absolute', bottom: 16, right: 20, zIndex: 10 }}

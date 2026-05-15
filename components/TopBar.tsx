@@ -35,9 +35,10 @@ interface TopBarProps {
   onOpenAudit: () => void;
   activeScenario: ScenarioKey | null;
   scenarioBusy: boolean;
-  // New: Map toggle controls visibility of the FactoryMap column.
   mapVisible: boolean;
   onToggleMap: () => void;
+  pitchActive: boolean;
+  onTogglePitch: () => void;
 }
 
 export function TopBar({
@@ -51,6 +52,8 @@ export function TopBar({
   scenarioBusy,
   mapVisible,
   onToggleMap,
+  pitchActive,
+  onTogglePitch,
 }: TopBarProps) {
   const [scenariosOpen, setScenariosOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ bottom: number; left: number } | null>(null);
@@ -114,46 +117,52 @@ export function TopBar({
       <div style={{ flex: 1 }} />
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <EraToggle eraMode={eraMode} onChange={onChangeEra} />
+        {!pitchActive ? (
+          <>
+            <EraToggle eraMode={eraMode} onChange={onChangeEra} />
 
-        <GhostButton onClick={onOpenApiKeys} title="API Keys">
-          API Keys
-        </GhostButton>
+            <GhostButton onClick={onOpenApiKeys} title="API Keys">
+              API Keys
+            </GhostButton>
 
-        <GhostButton
-          buttonRef={scenariosButtonRef}
-          onClick={() => {
-            if (scenariosOpen) setScenariosOpen(false);
-            else {
-              recomputeMenuPosition();
-              setScenariosOpen(true);
-            }
-          }}
-          disabled={scenarioBusy}
-          title="Run a scenario"
-        >
-          Scenarios
-          <span style={{ marginLeft: 6, color: "#666" }}>▾</span>
-          {activeScenario ? (
-            <span style={{ marginLeft: 6, color: "#14b8a6" }}>· active</span>
-          ) : null}
-        </GhostButton>
+            <GhostButton
+              buttonRef={scenariosButtonRef}
+              onClick={() => {
+                if (scenariosOpen) setScenariosOpen(false);
+                else {
+                  recomputeMenuPosition();
+                  setScenariosOpen(true);
+                }
+              }}
+              disabled={scenarioBusy}
+              title="Run a scenario"
+            >
+              Scenarios
+              <span style={{ marginLeft: 6, color: "#666" }}>▾</span>
+              {activeScenario ? (
+                <span style={{ marginLeft: 6, color: "#14b8a6" }}>· active</span>
+              ) : null}
+            </GhostButton>
 
-        <GhostButton onClick={onOpenAudit} title="Open audit timeline">
-          Audit
-        </GhostButton>
+            <GhostButton onClick={onOpenAudit} title="Open audit timeline">
+              Audit
+            </GhostButton>
 
-        <GhostButton
-          onClick={onToggleMap}
-          active={mapVisible}
-          title="Toggle map"
-        >
-          Map
-        </GhostButton>
+            <GhostButton
+              onClick={onToggleMap}
+              active={mapVisible}
+              title="Toggle map"
+            >
+              Map
+            </GhostButton>
 
-        <GhostButton onClick={onResetDemo} title="Reset demo data">
-          Reset
-        </GhostButton>
+            <GhostButton onClick={onResetDemo} title="Reset demo data">
+              Reset
+            </GhostButton>
+          </>
+        ) : null}
+
+        <PitchPill active={pitchActive} onClick={onTogglePitch} />
       </div>
 
       <ScenariosMenu
@@ -168,6 +177,36 @@ export function TopBar({
         }}
       />
     </header>
+  );
+}
+
+function PitchPill({
+  active,
+  onClick,
+}: {
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        background: "#0070f3",
+        color: "#ffffff",
+        border: "none",
+        borderRadius: 20,
+        padding: "6px 14px",
+        fontSize: 12,
+        fontWeight: 600,
+        cursor: "pointer",
+        boxShadow: active ? "0 0 0 2px #0070f3" : "none",
+        letterSpacing: "0.04em",
+        transition: "box-shadow 120ms ease, background 120ms ease",
+      }}
+    >
+      {active ? "✕ EXIT PITCH" : "● PITCH MODE"}
+    </button>
   );
 }
 
@@ -317,13 +356,27 @@ function ScenariosMenu({
           width: 280,
           maxHeight: 320,
           overflowY: "auto",
-          background: "#111",
+          backgroundColor: "#111111",
           border: "1px solid #2a2a2a",
           borderRadius: 8,
-          boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.8)",
           zIndex: 9999,
+          color: "#cccccc",
         }}
       >
+        <div
+          style={{
+            padding: "10px 16px 6px",
+            fontSize: 10,
+            color: "#444",
+            textTransform: "uppercase",
+            letterSpacing: "0.12em",
+            fontWeight: 600,
+            borderBottom: "1px solid #222",
+          }}
+        >
+          Select a scenario
+        </div>
         {SCENARIO_OPTIONS.map((opt) => {
           const isActive = active === opt.key;
           return (
@@ -338,32 +391,30 @@ function ScenariosMenu({
                 justifyContent: "space-between",
                 gap: 12,
                 width: "100%",
-                padding: "10px 14px",
+                padding: "10px 16px",
                 background: "transparent",
                 border: "none",
                 cursor: busy ? "not-allowed" : "pointer",
                 opacity: busy ? 0.4 : 1,
-                color: isActive ? "#fff" : "#ccc",
-                fontSize: 14,
+                color: "#cccccc",
+                fontSize: 13,
+                fontWeight: 500,
                 textAlign: "left",
               }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "#1a1a1a")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background = "transparent")
-              }
+              onMouseEnter={(e) => {
+                if (busy) return;
+                e.currentTarget.style.background = "#1a1a1a";
+                e.currentTarget.style.color = "#ffffff";
+              }}
+              onMouseLeave={(e) => {
+                if (busy) return;
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = isActive ? "#ffffff" : "#cccccc";
+              }}
             >
-              <span>
-                <div style={{ fontWeight: 500, fontSize: 14, lineHeight: 1.2 }}>
-                  {opt.short}
-                </div>
-                <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>
-                  {opt.label}
-                </div>
-              </span>
+              <span style={{ color: "inherit" }}>{opt.short}</span>
               {isActive ? (
-                <span style={{ color: "#14b8a6", fontSize: 14 }}>✓</span>
+                <span style={{ color: "#22c55e", fontSize: 14 }}>✓</span>
               ) : null}
             </button>
           );

@@ -9,7 +9,7 @@ import { LegacyView } from "@/components/LegacyView";
 import { NetworkGraph } from "@/components/NetworkGraph";
 import { NexusApiKeysPanel } from "@/components/NexusApiKeysPanel";
 import { NoNodesView } from "@/components/NoNodesView";
-import { PitchMode } from "@/components/PitchMode";
+import { PitchOverlay } from "@/components/PitchOverlay";
 import { RecoveryPanel } from "@/components/RecoveryPanel";
 import {
   ScenarioController,
@@ -128,7 +128,16 @@ export default function Page() {
   const [viewMode, setViewMode] = useState<"graph" | "map">("graph");
   void viewMode;
   void setViewMode;
-  const [mapVisible, setMapVisible] = useState(true);
+  const [mapVisible, setMapVisible] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const stored = window.localStorage.getItem("nexus_map_visible");
+    if (stored === "false") return false;
+    return true;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("nexus_map_visible", String(mapVisible));
+  }, [mapVisible]);
   const [eraMode, setEraMode] = useState<"after" | "before">("after");
   const [transitionToast, setTransitionToast] = useState<string | null>(null);
 
@@ -790,6 +799,8 @@ export default function Page() {
         }
         mapVisible={mapVisible}
         onToggleMap={() => setMapVisible((v) => !v)}
+        pitchActive={pitchActive}
+        onTogglePitch={() => setPitchActive((v) => !v)}
       />
 
       {eraMode === "before" ? (
@@ -798,13 +809,15 @@ export default function Page() {
         </main>
       ) : (
       <>
-        <KpiStrip
-          totalNodes={nodes.length}
-          healthyNodes={
-            Array.from(statuses.values()).filter((s) => s.health === "ok").length
-          }
-          estimatedSavings={284_000}
-        />
+        {!pitchActive ? (
+          <KpiStrip
+            totalNodes={nodes.length}
+            healthyNodes={
+              Array.from(statuses.values()).filter((s) => s.health === "ok").length
+            }
+            estimatedSavings={284_000}
+          />
+        ) : null}
         <main
           className="flex-1 overflow-hidden"
           style={{ background: "#000" }}
@@ -831,89 +844,96 @@ export default function Page() {
               />
             </div>
 
-            <IncidentPanel
-              scenarioName={
-                activeScenario
-                  ? SCENARIO_OPTIONS.find((o) => o.key === activeScenario)?.short ?? "Cascade Failure"
-                  : null
-              }
-              scenarioState={scenarioState}
-              affected={SCENARIO_AFFECTED}
-              elapsedMs={elapsedMs}
-              recovering={recovering}
-              recoveryProgressPct={
-                recovering
-                  ? Math.round(
-                      (steps.filter((s) => s.status === "done" || s.status === "error").length /
-                        Math.max(1, steps.length)) *
-                        100,
-                    )
-                  : 0
-              }
-              costAvoided={roiData ? roiData.productionLoss + roiData.emergencyLabor + roiData.expeditedShipping : null}
-              onInitiateRecovery={triggerRecovery}
-            />
-          </div>
-        </main>
-
-        {/* Globe — fixed bottom-right overlay, toggled from the TopBar Map button */}
-        {mapVisible ? (
-          <div
-            style={{
-              position: "fixed",
-              bottom: 24,
-              right: 24,
-              width: 280,
-              height: 280,
-              background: "#000",
-              border: "1px solid #1a1a1a",
-              borderRadius: 12,
-              overflow: "hidden",
-              zIndex: 40,
-              boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
-            }}
-          >
+            {/* Right column — incident panel on top, globe pinned below */}
             <div
               style={{
-                position: "absolute",
-                top: 10,
-                left: 12,
-                fontSize: 10,
-                color: "#333",
-                textTransform: "uppercase",
-                letterSpacing: "0.18em",
-                fontWeight: 600,
-                zIndex: 2,
-                pointerEvents: "none",
+                width: 300,
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                borderLeft: "1px solid #1a1a1a",
+                background: "#0a0a0a",
               }}
             >
-              MAP
+              <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+                <IncidentPanel
+                  scenarioName={
+                    activeScenario
+                      ? SCENARIO_OPTIONS.find((o) => o.key === activeScenario)?.short ?? "Cascade Failure"
+                      : null
+                  }
+                  scenarioState={scenarioState}
+                  affected={SCENARIO_AFFECTED}
+                  elapsedMs={elapsedMs}
+                  recovering={recovering}
+                  recoveryProgressPct={
+                    recovering
+                      ? Math.round(
+                          (steps.filter((s) => s.status === "done" || s.status === "error").length /
+                            Math.max(1, steps.length)) *
+                            100,
+                        )
+                      : 0
+                  }
+                  costAvoided={roiData ? roiData.productionLoss + roiData.emergencyLabor + roiData.expeditedShipping : null}
+                  onInitiateRecovery={triggerRecovery}
+                />
+              </div>
+
+              {mapVisible ? (
+                <div
+                  style={{
+                    height: 280,
+                    flexShrink: 0,
+                    borderTop: "1px solid #1a1a1a",
+                    background: "#000",
+                    position: "relative",
+                  }}
+                >
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: 8,
+                      left: 10,
+                      fontSize: 9,
+                      color: "#333",
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      zIndex: 10,
+                      pointerEvents: "none",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Supply Map
+                  </span>
+                  <FactoryMap
+                    nodes={nodes.map((n) => {
+                      const s = statuses.get(n.id);
+                      const health = collapsingNodeIds.has(n.id)
+                        ? "unreachable"
+                        : s?.health;
+                      const status =
+                        health === "ok"
+                          ? "healthy"
+                          : health === "degraded"
+                            ? "degraded"
+                            : health === "unreachable"
+                              ? "critical"
+                              : "unknown";
+                      return {
+                        name: n.label,
+                        status,
+                        uptime_pct:
+                          health === "ok" ? 100 : health === "degraded" ? 70 : 0,
+                      };
+                    })}
+                    history={history}
+                  />
+                </div>
+              ) : null}
             </div>
-            <FactoryMap
-              nodes={nodes.map((n) => {
-                const s = statuses.get(n.id);
-                const health = collapsingNodeIds.has(n.id)
-                  ? "unreachable"
-                  : s?.health;
-                const status =
-                  health === "ok"
-                    ? "healthy"
-                    : health === "degraded"
-                      ? "degraded"
-                      : health === "unreachable"
-                        ? "critical"
-                        : "unknown";
-                return {
-                  name: n.label,
-                  status,
-                  uptime_pct:
-                    health === "ok" ? 100 : health === "degraded" ? 70 : 0,
-                };
-              })}
-              history={history}
-            />
           </div>
-        ) : null}
+        </main>
       </>
       )}
 
@@ -951,15 +971,23 @@ export default function Page() {
         onClearOverride={clearOverride}
       />
 
-      <PitchMode
+      <PitchOverlay
         active={pitchActive}
         onClose={() => setPitchActive(false)}
-        partsTracked={partsTracked}
-        peakExposure={peakExposure}
-        scenarioState={scenarioState}
-        scenarioSteps={steps}
-        onTriggerCollapse={triggerCollapse}
+        onTriggerScenario={triggerScenario}
         onTriggerRecovery={triggerRecovery}
+        scenarioActive={
+          scenarioState === "executing" || scenarioState === "complete"
+        }
+        recovering={recovering}
+        recoveryComplete={scenarioState === "nominal"}
+        costAvoided={
+          roiData
+            ? roiData.productionLoss +
+              roiData.emergencyLabor +
+              roiData.expeditedShipping
+            : null
+        }
       />
 
       {resetConfirmOpen ? (
