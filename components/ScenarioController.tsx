@@ -170,7 +170,7 @@ export function ScenarioController({
                         <span>{opt.label}</span>
                         {opt.disabled ? (
                           <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-slate-500">
-                            Coming soon
+                            Locked
                           </span>
                         ) : null}
                       </button>
