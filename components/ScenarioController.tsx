@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { COLLAPSE_STEP_LABELS } from "@/lib/collapse";
 import type { CollapseStep, SentinelAlert } from "@/lib/types";
 
@@ -31,73 +30,28 @@ export const SCENARIO_STAGE_LABELS: readonly string[] = [
   "Critical state — Enterprise-wide impact",
 ];
 
-const AVAILABLE_SCENARIOS: { id: string; label: string; disabled?: boolean }[] = [
-  { id: "factory-2-disruption", label: "Factory 2 Supply Disruption" },
-  { id: "warehouse-1-outage", label: "Warehouse 1 Outage", disabled: true },
-  { id: "global-materials", label: "Global Materials Shortage", disabled: true },
-];
-
-function newAlertId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
 export function ScenarioController({
   state,
   steps,
   currentStage,
   elapsedSec,
-  onAlert,
-  onStateChange,
-  onTriggerCollapse,
   onReset,
+  // The following props are intentionally accepted but no longer used here.
+  // Scenario initiation is now driven entirely by the TopBar Scenarios menu;
+  // this footer only renders progress + nominal states. Kept on the
+  // interface for backwards compatibility with the page.tsx call site.
+  onAlert: _onAlert,
+  onStateChange: _onStateChange,
+  onTriggerCollapse: _onTriggerCollapse,
 }: ScenarioControllerProps) {
-  const [selectedScenario, setSelectedScenario] = useState<string>(
-    AVAILABLE_SCENARIOS[0].id,
-  );
-  const [dropOpen, setDropOpen] = useState(false);
-  const dropRef = useRef<HTMLDivElement | null>(null);
+  void _onAlert;
+  void _onStateChange;
+  void _onTriggerCollapse;
 
-  useEffect(() => {
-    if (!dropOpen) return;
-    const onClick = (e: MouseEvent) => {
-      if (dropRef.current && !dropRef.current.contains(e.target as Node))
-        setDropOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setDropOpen(false);
-    };
-    window.addEventListener("mousedown", onClick);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("mousedown", onClick);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [dropOpen]);
-
-  const scenario = AVAILABLE_SCENARIOS.find((s) => s.id === selectedScenario)!;
-
-  const handleInitiate = () => {
-    onStateChange("confirming");
-  };
-
-  const handleConfirm = () => {
-    onAlert({
-      id: newAlertId(),
-      timestamp: new Date(),
-      nodeId: "f2-materials",
-      nodeLabel: "Factory 2",
-      location: "Factory 2",
-      type: "collapse_triggered",
-      message:
-        "SCENARIO INITIATED · Factory 2 Supply Disruption · Cascade propagation imminent",
-      severity: "critical",
-    });
-    onTriggerCollapse();
-  };
-
-  const handleCancel = () => {
-    onStateChange("idle");
-  };
+  // Nothing to show in idle — the TopBar handles trigger UX now.
+  if (state === "idle" || state === "confirming") {
+    return null;
+  }
 
   const completedStages = steps.filter(
     (s) => s.status === "done" || s.status === "error",
@@ -115,84 +69,6 @@ export function ScenarioController({
             Cinematic cascade simulator
           </p>
         </div>
-
-        {state === "idle" ? (
-          <div className="flex flex-1 items-center gap-3">
-            {/* Scenario dropdown */}
-            <div ref={dropRef} className="relative">
-              <button
-                type="button"
-                onClick={() => setDropOpen((v) => !v)}
-                className="inline-flex items-center gap-2 rounded-md border border-cyan-500/20 bg-slate-900/70 px-3 py-1.5 text-xs font-medium text-cyan-200 hover:border-cyan-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-                aria-haspopup="listbox"
-                aria-expanded={dropOpen}
-              >
-                <span aria-hidden>⚡</span>
-                <span>{scenario.label}</span>
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={`h-3 w-3 transition-transform ${dropOpen ? "rotate-180" : ""}`}
-                  aria-hidden
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-              {dropOpen ? (
-                <ul
-                  role="listbox"
-                  className="absolute bottom-full left-0 z-10 mb-1 w-72 overflow-hidden rounded-md border border-cyan-500/20 bg-[#070b16] py-1 shadow-2xl"
-                >
-                  {AVAILABLE_SCENARIOS.map((opt) => (
-                    <li key={opt.id}>
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={opt.id === selectedScenario}
-                        disabled={opt.disabled}
-                        onClick={() => {
-                          if (opt.disabled) return;
-                          setSelectedScenario(opt.id);
-                          setDropOpen(false);
-                        }}
-                        className={`flex w-full items-center justify-between px-3 py-2 text-xs ${
-                          opt.disabled
-                            ? "cursor-not-allowed text-slate-600"
-                            : opt.id === selectedScenario
-                              ? "bg-cyan-500/10 text-cyan-200"
-                              : "text-slate-300 hover:bg-slate-800/60"
-                        }`}
-                      >
-                        <span>{opt.label}</span>
-                        {opt.disabled ? (
-                          <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-slate-500">
-                            Locked
-                          </span>
-                        ) : null}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-
-            <button
-              type="button"
-              onClick={handleInitiate}
-              className="glow-amber-box inline-flex items-center gap-2 rounded-md border border-amber-400/40 bg-amber-500/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-950 shadow-lg hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
-            >
-              <span aria-hidden>⚡</span>
-              Initiate Scenario
-            </button>
-            <p className="ml-2 text-[10px] text-slate-500">
-              Confirmation required · cascade simulation
-            </p>
-          </div>
-        ) : null}
 
         {state === "executing" ? (
           <div className="flex flex-1 flex-col gap-1.5">
@@ -267,87 +143,7 @@ export function ScenarioController({
           </div>
         ) : null}
       </div>
-
-      {state === "confirming" ? (
-        <ConfirmModal
-          scenarioLabel={scenario.label}
-          onCancel={handleCancel}
-          onConfirm={handleConfirm}
-        />
-      ) : null}
     </footer>
-  );
-}
-
-interface ConfirmModalProps {
-  scenarioLabel: string;
-  onCancel: () => void;
-  onConfirm: () => void;
-}
-
-function ConfirmModal({ scenarioLabel, onCancel, onConfirm }: ConfirmModalProps) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onCancel]);
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#020409]/80 p-4 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onCancel();
-      }}
-    >
-      <div className="w-full max-w-md rounded-lg border border-amber-500/40 bg-[#0a1322] p-6 shadow-2xl">
-        <h3 className="flex items-center gap-2 text-base font-semibold uppercase tracking-[0.15em] text-amber-300">
-          <span aria-hidden>⚡</span>
-          Scenario: {scenarioLabel}
-        </h3>
-        <p className="mt-3 text-sm leading-relaxed text-slate-300">
-          This will simulate a <strong className="text-amber-200">5-stage cascade failure</strong>{" "}
-          originating at Factory 2, propagating across the supply network.
-        </p>
-        <dl className="mt-4 grid grid-cols-2 gap-3 rounded-md border border-slate-800 bg-slate-900/60 p-3 text-xs">
-          <div>
-            <dt className="text-[10px] uppercase tracking-wider text-slate-500">
-              Blast radius
-            </dt>
-            <dd className="mt-0.5 font-mono text-base font-semibold text-amber-200">
-              8 nodes
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[10px] uppercase tracking-wider text-slate-500">
-              Est. exposure
-            </dt>
-            <dd className="mt-0.5 font-mono text-base font-semibold text-rose-300">
-              $1.2M – $2.4M
-            </dd>
-          </div>
-        </dl>
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-md border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-300 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="glow-amber-box rounded-md border border-amber-400/50 bg-amber-500 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-950 shadow-lg hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
-          >
-            Confirm &amp; Execute
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 

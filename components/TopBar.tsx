@@ -63,7 +63,8 @@ export function TopBar({
   const [clock, setClock] = useState<Date>(new Date());
   const [muted, setMutedState] = useState<boolean>(false);
   const [scenariosOpen, setScenariosOpen] = useState(false);
-  const scenariosRef = useRef<HTMLDivElement | null>(null);
+  const [menuPos, setMenuPos] = useState<{ bottom: number; left: number } | null>(null);
+  const scenariosButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setClock(new Date()), 1000);
@@ -76,15 +77,36 @@ export function TopBar({
 
   useEffect(() => {
     if (!scenariosOpen) return;
-    const close = (e: MouseEvent) => {
-      if (!scenariosRef.current) return;
-      if (!scenariosRef.current.contains(e.target as Node)) {
-        setScenariosOpen(false);
-      }
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setScenariosOpen(false);
     };
-    window.addEventListener("click", close);
-    return () => window.removeEventListener("click", close);
+    const onResize = () => recomputeMenuPosition();
+    window.addEventListener("keydown", onEsc);
+    window.addEventListener("resize", onResize);
+    window.addEventListener("scroll", onResize, true);
+    return () => {
+      window.removeEventListener("keydown", onEsc);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("scroll", onResize, true);
+    };
   }, [scenariosOpen]);
+
+  const recomputeMenuPosition = () => {
+    if (!scenariosButtonRef.current) return;
+    const rect = scenariosButtonRef.current.getBoundingClientRect();
+    // Open UPWARD so the menu lives above the TopBar instead of covering the
+    // NetworkGraph below it. Align the menu's left edge with the button's
+    // left edge, clamped to keep it on-screen with the 280px width.
+    const width = 280;
+    const left = Math.min(
+      Math.max(8, rect.left),
+      window.innerWidth - width - 8,
+    );
+    setMenuPos({
+      bottom: Math.max(8, window.innerHeight - rect.top + 8),
+      left,
+    });
+  };
 
   // ── System Health computation (unchanged from prior version) ──
   let degradedCount = 0;
@@ -174,52 +196,31 @@ export function TopBar({
 
         {/* Right — action buttons */}
         <div className="flex w-full sm:w-auto flex-wrap items-center justify-end gap-2">
-          {/* Scenarios dropdown */}
-          <div ref={scenariosRef} className="relative">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setScenariosOpen((v) => !v);
-              }}
-              disabled={scenarioBusy}
-              title="Run a scenario"
-              className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 sm:px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300 hover:border-amber-400 hover:bg-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <span aria-hidden>⚡</span>
-              <span className="hidden sm:inline">Scenarios</span>
-              {activeOption ? (
-                <span className="hidden md:inline text-cyan-300 normal-case tracking-normal">
-                  · {activeOption.short}
-                </span>
-              ) : null}
-            </button>
-            {scenariosOpen ? (
-              <div
-                role="menu"
-                onClick={(e) => e.stopPropagation()}
-                className="absolute right-0 top-full z-40 mt-1 w-[280px] rounded-md border border-amber-500/30 bg-[#0a0f1c] p-1 shadow-2xl"
-              >
-                {SCENARIO_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    onClick={() => {
-                      setScenariosOpen(false);
-                      onRunScenario(opt.key);
-                    }}
-                    disabled={scenarioBusy}
-                    className="block w-full rounded px-3 py-2 text-left text-[11px] text-slate-200 hover:bg-amber-500/10 hover:text-amber-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <span className="block font-semibold">{opt.short}</span>
-                    <span className="block text-[9px] text-slate-500 mt-0.5 tracking-[0.04em]">
-                      {opt.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
+          {/* Scenarios dropdown trigger (menu itself is rendered at end of header) */}
+          <button
+            ref={scenariosButtonRef}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (scenariosOpen) {
+                setScenariosOpen(false);
+              } else {
+                recomputeMenuPosition();
+                setScenariosOpen(true);
+              }
+            }}
+            disabled={scenarioBusy}
+            title="Run a scenario"
+            className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 sm:px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300 hover:border-amber-400 hover:bg-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <span aria-hidden>⚡</span>
+            <span className="hidden sm:inline">Scenarios</span>
+            {activeOption ? (
+              <span className="hidden md:inline text-cyan-300 normal-case tracking-normal">
+                · {activeOption.short}
+              </span>
             ) : null}
-          </div>
+          </button>
 
           {/* Before / After era toggle */}
           <div
@@ -302,6 +303,95 @@ export function TopBar({
           </button>
         </div>
       </div>
+
+      {/* Scenarios menu — fixed-position portal so it floats above the network graph */}
+      {scenariosOpen ? (
+        <>
+          <div
+            onClick={() => setScenariosOpen(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.4)",
+              zIndex: 9998,
+            }}
+            aria-hidden
+          />
+          <div
+            role="menu"
+            aria-label="Scenarios"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "fixed",
+              bottom: menuPos?.bottom ?? 64,
+              left: menuPos?.left ?? 16,
+              top: "auto",
+              width: 280,
+              maxHeight: 280,
+              overflowY: "auto",
+              background: "#0a0f1c",
+              border: "1px solid rgba(245,158,11,0.3)",
+              borderRadius: 8,
+              boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
+              zIndex: 9999,
+            }}
+          >
+            {SCENARIO_OPTIONS.map((opt, idx) => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => {
+                  setScenariosOpen(false);
+                  onRunScenario(opt.key);
+                }}
+                disabled={scenarioBusy}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  padding: "12px 16px",
+                  textAlign: "left",
+                  background: "transparent",
+                  border: "none",
+                  borderBottom:
+                    idx < SCENARIO_OPTIONS.length - 1
+                      ? "1px solid rgba(255,255,255,0.06)"
+                      : "none",
+                  cursor: scenarioBusy ? "not-allowed" : "pointer",
+                  opacity: scenarioBusy ? 0.4 : 1,
+                  transition: "background 120ms ease",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.06)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
+              >
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: "#ffffff",
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {opt.short}
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "#94a3b8",
+                    marginTop: 4,
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {opt.label}
+                </div>
+              </button>
+            ))}
+          </div>
+        </>
+      ) : null}
     </header>
   );
 }

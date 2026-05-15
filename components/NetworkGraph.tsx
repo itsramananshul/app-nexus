@@ -384,9 +384,12 @@ function NodeCard({
     dotCls = "bg-slate-500 pulse-live";
     stateLabel = "LOADING";
   } else if (noKey) {
-    borderCls = "border-slate-700/50 border-dashed";
-    dotCls = "bg-slate-500";
-    stateLabel = "NO KEY";
+    // Subtle: keep the same default border, just a gray dot with a tooltip.
+    // The aggressive dashed-border + "Add key →" treatment was overstating
+    // the issue and breaking the card layout during scenario selection.
+    borderCls = "border-slate-700/70";
+    dotCls = "bg-slate-600";
+    stateLabel = "No API key — configure in API Keys panel";
   } else if (collapsing) {
     borderCls = "border-rose-500/70";
     glowCls = "pulse-critical";
@@ -442,6 +445,7 @@ function NodeCard({
         <span
           className={`h-2 w-2 shrink-0 rounded-full ${dotCls}`}
           aria-label={stateLabel}
+          title={stateLabel}
         />
       </div>
       <div className="mt-1 flex items-center justify-between gap-1.5">
@@ -452,11 +456,7 @@ function NodeCard({
             </span>
           ) : (
             <span className="font-mono text-[10px] text-slate-500">
-              {stateLabel === "LOADING"
-                ? "Loading…"
-                : stateLabel === "NO KEY"
-                  ? "Add key →"
-                  : "—"}
+              {stateLabel === "LOADING" ? "Loading…" : "—"}
             </span>
           )}
           {secondary ? (

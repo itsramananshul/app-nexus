@@ -136,6 +136,7 @@ export default function Page() {
   const [roiData, setROIData] = useState<ROIData | null>(null);
   const [auditOpen, setAuditOpen] = useState(false);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
+  const [scenarioToast, setScenarioToast] = useState<string | null>(null);
   const lastPollLogAtRef = useRef<number>(0);
   const incidentMetaRef = useRef<AuditIncidentMeta>({
     scenarioLabel: null,
@@ -438,6 +439,12 @@ export default function Page() {
     return () => clearTimeout(id);
   }, [resetToast]);
 
+  useEffect(() => {
+    if (!scenarioToast) return;
+    const id = setTimeout(() => setScenarioToast(null), 4000);
+    return () => clearTimeout(id);
+  }, [scenarioToast]);
+
   // Auto-dismiss the era-transition reveal after 2.5s
   useEffect(() => {
     if (!transitionToast) return;
@@ -507,6 +514,28 @@ export default function Page() {
   // PitchMode can fire them too.
   const triggerScenario = useCallback(
     (key: ScenarioKey) => {
+      // Count targeted nodes lacking an API key so we can surface a single
+      // summary toast and skip them silently inside the scenario libs.
+      const targetIds: string[] =
+        key === "warehouse"
+          ? ["w1-product", "w2-product", "corp-orders", "corp-shipments", "corp-support"]
+          : key === "materials"
+            ? [
+                ...nodes.filter((n) => n.type === "raw_materials").map((n) => n.id),
+                "corp-orders",
+                "corp-support",
+              ]
+            : ["f2-product", "f2-materials", "corp-orders", "corp-shipments", "corp-support"];
+      const skipped = targetIds.filter((id) => {
+        const n = nodes.find((x) => x.id === id);
+        return !n || !n.apiKey;
+      }).length;
+      if (skipped > 0) {
+        setScenarioToast(
+          `${skipped} ${skipped === 1 ? "node" : "nodes"} skipped — no API key configured`,
+        );
+      }
+
       setActiveScenario(key);
       setROIData(null);
       const opt = SCENARIO_OPTIONS.find((o) => o.key === key);
@@ -955,6 +984,19 @@ export default function Page() {
             {resetToast.startsWith("Reset failed") ? "✗ Reset failed" : "✓ Reset complete"}
           </p>
           <p className="mt-1 text-xs text-slate-300">{resetToast}</p>
+        </div>
+      ) : null}
+
+      {scenarioToast ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="alert-enter fixed bottom-40 right-6 z-[70] max-w-md rounded-md border border-amber-500/40 bg-[#0a1322]/95 px-4 py-3 shadow-2xl"
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider text-amber-300">
+            ⚠ Scenario · partial coverage
+          </p>
+          <p className="mt-1 text-xs text-slate-300">{scenarioToast}</p>
         </div>
       ) : null}
 
