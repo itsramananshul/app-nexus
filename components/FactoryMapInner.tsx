@@ -56,20 +56,15 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
       })
     );
 
-    (chart.events.on as unknown as (
-      ev: string,
-      cb: () => void,
-    ) => void)('zoomlevelchanged', () => {
-      chart.set('homeZoomLevel', chart.get('zoomLevel', 1));
-    });
+    // Nuke goHome so amCharts never snaps back to a "home" state after wheel/drag
+    (chart as unknown as { goHome: () => void }).goHome = () => {};
 
-    (chart.events.on as unknown as (
-      ev: string,
-      cb: () => void,
-    ) => void)('rotationchanged', () => {
-      chart.set('homeRotationX', chart.get('rotationX', 90));
-      chart.set('homeRotationY', chart.get('rotationY', -35));
-    });
+    // After every wheel event, lock homeZoomLevel to where the user landed
+    const containerEl = divRef.current!;
+    const onWheel = () => {
+      chart.set('homeZoomLevel', chart.get('zoomLevel', 1));
+    };
+    containerEl.addEventListener('wheel', onWheel, { passive: true });
 
     // Ocean background — pure black
     chart.chartContainer.set('background', am5.Rectangle.new(root, {
@@ -258,6 +253,7 @@ export default function FactoryMapInner({ nodes, history }: { nodes: NodeStatus[
     });
 
     return () => {
+      containerEl.removeEventListener('wheel', onWheel);
       root.dispose();
     };
   }, [nodes]);
