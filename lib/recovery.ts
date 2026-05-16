@@ -5,7 +5,7 @@ import type {
   RecoveryCallbacks,
 } from "./types";
 
-const STEP_GAP_MS = 400;
+const STEP_GAP_MS = 1500;
 const REQUEST_TIMEOUT_MS = 2000;
 
 function sleep(ms: number): Promise<void> {

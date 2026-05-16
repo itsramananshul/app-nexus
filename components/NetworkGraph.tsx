@@ -28,7 +28,7 @@ interface NetworkGraphProps {
 type NodePos = { x: number; y: number };
 
 const NODE_W = 150;
-const NODE_H = 88;
+const NODE_H = 100;
 
 const POSITIONS: Record<string, NodePos> = {
   // Top — Factory 1 + Factory 3
@@ -459,8 +459,18 @@ function NodeCard({
           />
           <div className="min-w-0">
             <p
-              className="truncate"
-              style={{ fontSize: 13, color: "#fff", fontWeight: 500, lineHeight: 1.2 }}
+              style={{
+                fontSize: 12,
+                color: "#fff",
+                fontWeight: 500,
+                lineHeight: 1.2,
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+                wordBreak: "break-word",
+              }}
+              title={node.label}
             >
               {node.label}
             </p>

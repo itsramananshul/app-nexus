@@ -346,13 +346,13 @@ export default function Page() {
       );
       setCollapsingNodeId(null);
       const target = STEP_TO_NODE[index];
-      // Latch this node as degraded so poller flickers don't flip it back to green
+      // onStepStart already pushed this node into warning (red blink).
+      // onStepDone confirms the outage — promote to FAILED (gray) immediately.
+      // latchedDegradedNodes also stays set so polling never flips it back to
+      // green.
       if (target) {
         setLatchedDegradedNodes((prev) => new Set([...prev, target.id]));
-        // After 2s of red-blink warning, transition the card to gray "failed".
-        setTimeout(() => {
-          setFailedNodeIds((prev) => new Set([...prev, target.id]));
-        }, 2000);
+        setFailedNodeIds((prev) => new Set([...prev, target.id]));
       }
       handleAlert({
         id: newAlertId(),
@@ -1087,29 +1087,6 @@ export default function Page() {
               roiData.emergencyLabor +
               roiData.expeditedShipping
             : null
-        }
-        liveNetworkPreview={
-          <NetworkGraph
-            nodes={nodes}
-            statuses={displayStatuses}
-            collapsingNodeIds={collapsingNodeIds}
-            now={now}
-            isLoadingKeys={!keysLoaded}
-            history={history}
-            affectedNodeIds={
-              scenarioState === "executing" ||
-              scenarioState === "complete" ||
-              scenarioState === "recovering"
-                ? new Set(SCENARIO_AFFECTED.map((a) => a.id))
-                : undefined
-            }
-            scenarioActive={
-              scenarioState === "executing" ||
-              scenarioState === "complete" ||
-              scenarioState === "recovering"
-            }
-            failedNodeIds={failedNodeIds}
-          />
         }
       />
 
