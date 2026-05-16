@@ -108,9 +108,13 @@ export function PitchOverlay({
         style={{
           // Locked dimensions across every step — sized for the heaviest
           // slides (Before / After diagrams). Audience never sees a
-          // layout shift as the deck advances.
+          // layout shift as the deck advances. Height bumped to 80vh
+          // so step content (especially Before / After) fits without
+          // any internal scrolling on standard laptop displays.
           width: "min(1100px, 96vw)",
-          height: "min(720px, 88vh)",
+          height: "80vh",
+          minHeight: 560,
+          maxHeight: "90vh",
           background: "#0a0a0a",
           border: "1px solid #1a1a1a",
           borderRadius: 16,

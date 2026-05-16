@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import type { NodeConfig } from "@/lib/nodes";
 import {
   NODE_TYPE_EMOJI,
@@ -157,30 +157,9 @@ export function NetworkGraph({
     });
   }, [statuses, collapsingNodeIds]);
 
-  // Auto-scale the 1200×660 intrinsic canvas to fit whatever container the
-  // graph lands in. The canvas itself stays in its own coordinate system —
-  // we just transform: scale the wrapper so absolute-positioned cards + SVG
-  // shrink/grow together. No scrollbars at any size.
-  const wrapRef = useRef<HTMLDivElement | null>(null);
-  const [scale, setScale] = useState(1);
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const compute = () => {
-      const w = el.clientWidth;
-      const h = el.clientHeight;
-      if (w === 0 || h === 0) return;
-      setScale(Math.min(w / 1200, h / 660));
-    };
-    compute();
-    const ro = new ResizeObserver(compute);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
   return (
-    <section className="relative h-full flex flex-col" style={{ background: "#000" }}>
-      <header className="mb-2 flex items-center justify-between px-1 flex-shrink-0">
+    <section className="relative h-full" style={{ background: "#000" }}>
+      <header className="mb-2 flex items-center justify-between px-1">
         <div>
           <h2 style={{ fontSize: 11, color: "#888", fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase" }}>
             Supply Network
@@ -197,19 +176,10 @@ export function NetworkGraph({
       </header>
 
       <div
-        ref={wrapRef}
-        className="relative flex-1 w-full overflow-hidden"
-        style={{ background: "#000", minHeight: 0 }}
+        className="relative h-[calc(100%-2.5rem)] w-full overflow-auto scrollbar-thin"
+        style={{ background: "#000" }}
       >
-        <div
-          className="relative"
-          style={{
-            width: 1200,
-            height: 660,
-            transformOrigin: "top left",
-            transform: `scale(${scale})`,
-          }}
-        >
+        <div className="relative" style={{ width: 1200, height: 660 }}>
           <svg
             viewBox="0 0 1200 660"
             width="1200"
