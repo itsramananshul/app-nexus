@@ -20,6 +20,9 @@ interface NetworkGraphProps {
   // set get an "AFFECTED" badge; non-affected cards visually recede.
   affectedNodeIds?: Set<string>;
   scenarioActive?: boolean;
+  // Nodes that have transitioned past "red blink" into the final "failed"
+  // (gray) state during scenario playback.
+  failedNodeIds?: Set<string>;
 }
 
 type NodePos = { x: number; y: number };
@@ -124,6 +127,7 @@ export function NetworkGraph({
   history,
   affectedNodeIds,
   scenarioActive = false,
+  failedNodeIds,
 }: NetworkGraphProps) {
   const byId = useMemo(() => {
     const m = new Map<string, NodeConfig>();
@@ -301,6 +305,7 @@ export function NetworkGraph({
             const status = statuses.get(node.id);
             const collapsing = collapsingNodeIds.has(node.id);
             const isAffected = affectedNodeIds?.has(node.id) ?? false;
+            const isFailed = failedNodeIds?.has(node.id) ?? false;
             return (
               <NodeCard
                 key={node.id}
@@ -314,6 +319,7 @@ export function NetworkGraph({
                 history={history?.get(node.id) ?? []}
                 affected={isAffected}
                 scenarioActive={scenarioActive}
+                failed={isFailed}
               />
             );
           })}
@@ -334,6 +340,7 @@ interface NodeCardProps {
   history: number[];
   affected?: boolean;
   scenarioActive?: boolean;
+  failed?: boolean;
 }
 
 function NodeCard({
@@ -347,6 +354,7 @@ function NodeCard({
   history,
   affected = false,
   scenarioActive = false,
+  failed = false,
 }: NodeCardProps) {
   const health = status?.health;
   const noKey = !hasKey;
@@ -366,6 +374,14 @@ function NodeCard({
   } else if (noKey) {
     dotColor = "#2a2a2a";
     stateLabel = "No API key — configure in API Keys panel";
+  } else if (failed) {
+    // Final "failed" state — after the red blink, the node settles into
+    // a flat gray. Communicates: it's not coming back without recovery.
+    borderColor = "#2a2a2a";
+    dotColor = "#555555";
+    dotPulse = false;
+    sparklineColor = "#444444";
+    stateLabel = "FAILED";
   } else if (collapsing) {
     borderColor = "#ef4444";
     dotColor = "#ef4444";
@@ -455,10 +471,10 @@ function NodeCard({
         </div>
         {scenarioActive && affected ? (
           <span
-            aria-label="Affected"
+            aria-label={failed ? "Failed" : "Affected"}
             style={{
-              background: "rgba(239,68,68,0.15)",
-              color: "#ef4444",
+              background: failed ? "rgba(120,120,120,0.18)" : "rgba(239,68,68,0.15)",
+              color: failed ? "#888" : "#ef4444",
               fontSize: 9,
               fontWeight: 700,
               padding: "2px 5px",
@@ -468,7 +484,7 @@ function NodeCard({
               flexShrink: 0,
             }}
           >
-            Affected
+            {failed ? "Failed" : "Affected"}
           </span>
         ) : null}
       </div>

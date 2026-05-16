@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "NEXUS — Enterprise Reality Engine",
+  title: "OpenPrem — Open Intelligence Interconnect",
   description:
-    "Cinematic command center monitoring all enterprise demo apps in real time.",
+    "Live demo of the Open Intelligence Interconnect Model — peer-to-peer enterprise architecture replacing brittle middleware.",
 };
 
 export default function RootLayout({

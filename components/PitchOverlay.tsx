@@ -87,7 +87,7 @@ export function PitchOverlay({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Nexus pitch"
+      aria-label="OpenPrem pitch"
       style={{
         position: "fixed",
         inset: 0,
@@ -310,7 +310,7 @@ export function PitchOverlay({
                 <>
                   <p style={{ fontSize: 13, color: "#888", lineHeight: 1.6, marginBottom: 14 }}>
                     Manual recovery from a cascade like this takes ~45 minutes
-                    of phone calls, ticket queues, and emergency labor. Nexus
+                    of phone calls, ticket queues, and emergency labor. OpenPrem
                     reverses it in a single API call.
                   </p>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>

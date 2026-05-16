@@ -101,19 +101,26 @@ export function TopBar({
         gap: 16,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }} aria-label="OpenPrem">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
-          <circle cx="10" cy="10" r="9" stroke="#0070f3" strokeWidth="1.5" />
-          <circle cx="10" cy="10" r="4" fill="#0070f3" />
-          <line x1="10" y1="1" x2="10" y2="4" stroke="#0070f3" strokeWidth="1.5" />
-          <line x1="10" y1="16" x2="10" y2="19" stroke="#0070f3" strokeWidth="1.5" />
-          <line x1="1" y1="10" x2="4" y2="10" stroke="#0070f3" strokeWidth="1.5" />
-          <line x1="16" y1="10" x2="19" y2="10" stroke="#0070f3" strokeWidth="1.5" />
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }} aria-label="OpenPrem">
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 32 32"
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          aria-hidden
+        >
+          {/* Outer crescent — large circle with bottom gap */}
+          <path d="M 9 28 A 13 13 0 1 1 23 28" />
+          {/* Inner crescent — small circle with bottom gap */}
+          <path d="M 13 21 A 5 5 0 1 1 19 21" />
         </svg>
         <span
-          style={{ color: "#fff", fontSize: 13, fontWeight: 700, letterSpacing: "0.1em" }}
+          style={{ color: "#fff", fontSize: 13, fontWeight: 600, letterSpacing: "0.04em" }}
         >
-          Open<span style={{ color: "#0070f3" }}>Prem</span>
+          OpenPrem
         </span>
       </div>
 

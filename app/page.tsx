@@ -121,6 +121,9 @@ export default function Page() {
   const [recovering, setRecovering] = useState(false);
   // Latch: nodes explicitly degraded by scenario stay red even if poller briefly returns ok
   const [latchedDegradedNodes, setLatchedDegradedNodes] = useState<Set<string>>(new Set());
+  // A node enters `failedNodeIds` ~2s after it's latched as degraded —
+  // visualising the progression: normal → red blink (warning) → gray (failed).
+  const [failedNodeIds, setFailedNodeIds] = useState<Set<string>>(new Set());
   const [recoveryLabel, setRecoveryLabel] = useState<string | null>(null);
   const [pitchActive, setPitchActive] = useState(false);
   const [history, setHistory] = useState<Map<string, number[]>>(new Map());
@@ -149,6 +152,7 @@ export default function Page() {
   const [auditOpen, setAuditOpen] = useState(false);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [scenarioToast, setScenarioToast] = useState<string | null>(null);
+  const [mapExpanded, setMapExpanded] = useState(false);
   const lastPollLogAtRef = useRef<number>(0);
   const incidentMetaRef = useRef<AuditIncidentMeta>({
     scenarioLabel: null,
@@ -201,7 +205,7 @@ export default function Page() {
         alert.severity === "critical" ? "CRITICAL" : "DEGRADED";
       notify(
         alert.nodeId,
-        `Nexus Alert · ${severity}`,
+        `OpenPrem Alert · ${severity}`,
         `${alert.location} · ${alert.nodeLabel} — ${alert.message}`,
       );
     }
@@ -246,7 +250,7 @@ export default function Page() {
     if (initLoggedRef.current) return;
     if (!keysLoaded || nodes.length === 0) return;
     initLoggedRef.current = true;
-    logEvent("info", "loaded", `Nexus initialized · ${nodes.length} nodes connected`);
+    logEvent("info", "loaded", `OpenPrem initialized · ${nodes.length} nodes connected`);
   }, [keysLoaded, nodes.length, logEvent]);
 
   // Throttled poll-success heartbeat (every ~60s)
@@ -345,6 +349,10 @@ export default function Page() {
       // Latch this node as degraded so poller flickers don't flip it back to green
       if (target) {
         setLatchedDegradedNodes((prev) => new Set([...prev, target.id]));
+        // After 2s of red-blink warning, transition the card to gray "failed".
+        setTimeout(() => {
+          setFailedNodeIds((prev) => new Set([...prev, target.id]));
+        }, 2000);
       }
       handleAlert({
         id: newAlertId(),
@@ -419,6 +427,7 @@ export default function Page() {
 
   const handleReset = useCallback(() => {
     setLatchedDegradedNodes(new Set()); // clear latch on reset
+    setFailedNodeIds(new Set());
     setScenarioState("idle");
     setSteps(INITIAL_STEPS.map((s) => ({ ...s })));
     setCurrentStage(-1);
@@ -435,6 +444,7 @@ export default function Page() {
 
   const handleRecoveryComplete = useCallback(() => {
     setLatchedDegradedNodes(new Set()); // clear latch — recovery restored all nodes
+    setFailedNodeIds(new Set());
     setScenarioState("nominal");
     setTimeout(() => {
       setScenarioState("idle");
@@ -888,6 +898,7 @@ export default function Page() {
                   scenarioState === "complete" ||
                   scenarioState === "recovering"
                 }
+                failedNodeIds={failedNodeIds}
               />
             </div>
 
@@ -951,6 +962,44 @@ export default function Page() {
                   >
                     Supply Map
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setMapExpanded(true)}
+                    aria-label="Expand map"
+                    title="Expand map"
+                    style={{
+                      position: "absolute",
+                      top: 6,
+                      right: 6,
+                      width: 24,
+                      height: 24,
+                      borderRadius: 6,
+                      background: "rgba(0,0,0,0.7)",
+                      border: "1px solid #1e1e1e",
+                      color: "#888",
+                      cursor: "pointer",
+                      zIndex: 11,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "color 120ms ease, border-color 120ms ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "#fff";
+                      e.currentTarget.style.borderColor = "#2a2a2a";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "#888";
+                      e.currentTarget.style.borderColor = "#1e1e1e";
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M9 2h5v5" />
+                      <path d="M14 2L8 8" />
+                      <path d="M7 14H2v-5" />
+                      <path d="M2 14l6-6" />
+                    </svg>
+                  </button>
                   <FactoryMap
                     nodes={nodes.map((n) => {
                       const s = statuses.get(n.id);
@@ -1114,6 +1163,114 @@ export default function Page() {
           <p className="glow-cyan rounded-lg border border-cyan-400/40 bg-[#0a1322]/95 px-8 py-5 text-center text-xl font-semibold tracking-wide text-cyan-200 shadow-2xl">
             {transitionToast}
           </p>
+        </div>
+      ) : null}
+
+      {mapExpanded ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Expanded supply map"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 80,
+            background: "rgba(0,0,0,0.75)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 32,
+            animation: "alert-in 200ms ease-out",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setMapExpanded(false);
+          }}
+        >
+          <div
+            style={{
+              position: "relative",
+              width: "min(1100px, 100%)",
+              height: "min(720px, 90vh)",
+              background: "#000",
+              border: "1px solid #1a1a1a",
+              borderRadius: 12,
+              overflow: "hidden",
+              boxShadow: "0 30px 80px rgba(0,0,0,0.7)",
+            }}
+          >
+            <header
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 40,
+                padding: "0 14px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                borderBottom: "1px solid #1a1a1a",
+                background: "rgba(0,0,0,0.6)",
+                zIndex: 11,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 10,
+                  color: "#888",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  fontWeight: 600,
+                }}
+              >
+                Supply Map · OpenPrem
+              </span>
+              <button
+                type="button"
+                onClick={() => setMapExpanded(false)}
+                aria-label="Close expanded map"
+                style={{
+                  background: "transparent",
+                  border: "1px solid #2a2a2a",
+                  color: "#888",
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  fontSize: 11,
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#888")}
+              >
+                ✕ Close
+              </button>
+            </header>
+            <div style={{ position: "absolute", inset: 0, paddingTop: 40 }}>
+              <FactoryMap
+                nodes={nodes.map((n) => {
+                  const s = displayStatuses.get(n.id);
+                  const health = collapsingNodeIds.has(n.id)
+                    ? "unreachable"
+                    : s?.health;
+                  const status =
+                    health === "ok"
+                      ? "healthy"
+                      : health === "degraded"
+                        ? "degraded"
+                        : health === "unreachable"
+                          ? "critical"
+                          : "unknown";
+                  return {
+                    name: n.label,
+                    status,
+                    uptime_pct:
+                      health === "ok" ? 100 : health === "degraded" ? 70 : 0,
+                  };
+                })}
+                history={history}
+              />
+            </div>
+          </div>
         </div>
       ) : null}
 

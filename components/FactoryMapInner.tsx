@@ -197,29 +197,11 @@ export default function FactoryMapInner({ nodes, history: _history }: { nodes: N
       return am5.Bullet.new(root, { sprite: container });
     });
 
+    // No persistent city labels — they overlap on the small inline globe.
+    // Hover tooltips on the point markers carry the same info without
+    // adding visual noise. The label series is kept as an empty series
+    // so the rest of the code (push to .data) doesn't break.
     const labelSeries = chart.series.push(am5map.MapPointSeries.new(root, {}));
-
-    labelSeries.bullets.push((root, _series, dataItem) => {
-      const plantName = (dataItem.dataContext as { plantName?: string } | undefined)?.plantName ?? '';
-      const label = am5.Label.new(root, {
-        text: plantName,
-        fill: am5.color(0xffffff),
-        fontSize: 11,
-        fontFamily: 'monospace',
-        centerX: am5.p50,
-        dy: -18,
-        background: am5.RoundedRectangle.new(root, {
-          fill: am5.color(0x0f172a),
-          fillOpacity: 0.75,
-          cornerRadiusTL: 4, cornerRadiusTR: 4,
-          cornerRadiusBL: 4, cornerRadiusBR: 4,
-        }),
-        paddingTop: 2, paddingBottom: 2,
-        paddingLeft: 6, paddingRight: 6,
-        populateText: true,
-      });
-      return am5.Bullet.new(root, { sprite: label });
-    });
 
     pointSeriesRef.current = pointSeries;
     labelSeriesRef.current = labelSeries;
