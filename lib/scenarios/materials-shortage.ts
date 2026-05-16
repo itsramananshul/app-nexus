@@ -24,7 +24,7 @@ import {
   sleep,
 } from "./shared";
 
-const STEP_GAP_MS = 1500;
+const STEP_GAP_MS = 1200;
 
 export const MATERIALS_SHORTAGE_STAGE_LABELS: readonly string[] = [
   "Drain all raw materials nodes",

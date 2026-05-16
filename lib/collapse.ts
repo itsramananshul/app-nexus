@@ -6,8 +6,8 @@ import type {
   DrainedItem,
 } from "./types";
 
-const STEP_GAP_MS = 1500;
-const REQUEST_TIMEOUT_MS = 2000;
+const STEP_GAP_MS = 1200;
+const REQUEST_TIMEOUT_MS = 1500;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

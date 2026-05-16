@@ -59,52 +59,106 @@ export function ScenarioController({
   const progressPct = Math.round((completedStages / steps.length) * 100);
 
   return (
-    <footer className="border-t border-cyan-500/10 bg-[#070b16]/95 backdrop-blur supports-[backdrop-filter]:bg-[#070b16]/80">
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-6 py-3 lg:flex-row lg:items-center lg:gap-5">
-        <div className="flex flex-col gap-0.5 lg:min-w-[240px]">
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.25em] text-amber-300/90">
-            Reality Engine · Scenario
+    <footer
+      style={{
+        background: "#0a0a0a",
+        borderTop: "1px solid #1a1a1a",
+        flexShrink: 0,
+      }}
+    >
+      <div
+        className="mx-auto flex max-w-[1600px] flex-col gap-3 px-6 py-3 lg:flex-row lg:items-center lg:gap-5"
+      >
+        <div className="flex flex-col gap-0.5 lg:min-w-[200px]">
+          <h2
+            style={{
+              fontSize: 10,
+              color: "#444",
+              textTransform: "uppercase",
+              letterSpacing: "0.12em",
+              fontWeight: 600,
+            }}
+          >
+            Scenario console
           </h2>
-          <p className="text-[10px] text-slate-500">
-            Cinematic cascade simulator
+          <p style={{ fontSize: 11, color: "#666" }}>
+            Live cascade telemetry
           </p>
         </div>
 
         {state === "executing" ? (
-          <div className="flex flex-1 flex-col gap-1.5">
+          <div className="flex flex-1 flex-col gap-2 min-w-0">
             <div className="flex flex-wrap items-baseline gap-3">
-              <span className="rounded-sm bg-rose-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-300 ring-1 ring-rose-500/40">
-                SCENARIO IN PROGRESS
+              <StatusPill color="#ef4444" label="Scenario in progress" pulse />
+              <span style={{ fontSize: 11, color: "#888" }}>
+                Stage{" "}
+                <span style={{ color: "#fff", fontWeight: 600 }}>
+                  {Math.max(1, currentStage + 1)}
+                </span>{" "}
+                of {steps.length}
               </span>
-              <span className="text-[11px] uppercase tracking-wider text-amber-200">
-                Stage {Math.max(1, currentStage + 1)} of {steps.length}
-              </span>
-              <span className="font-mono text-[11px] text-slate-300">
+              <span
+                style={{
+                  fontSize: 11,
+                  color: "#cccccc",
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  flex: 1,
+                  minWidth: 0,
+                }}
+                title={SCENARIO_STAGE_LABELS[currentStage] ?? ""}
+              >
                 {SCENARIO_STAGE_LABELS[currentStage] ?? "—"}
               </span>
-              <span className="ml-auto font-mono text-[11px] tabular-nums text-slate-400">
+              <span
+                style={{
+                  fontSize: 11,
+                  color: "#888",
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
                 T+{elapsedSec.toFixed(1)}s
               </span>
             </div>
-            <div className="h-1 overflow-hidden rounded-full bg-slate-800">
+            <div
+              style={{
+                height: 3,
+                background: "#1a1a1a",
+                borderRadius: 2,
+                overflow: "hidden",
+              }}
+            >
               <div
-                className="h-full bg-rose-500 transition-all"
-                style={{ width: `${progressPct}%` }}
+                style={{
+                  height: "100%",
+                  width: `${progressPct}%`,
+                  background: "#ef4444",
+                  transition: "width 220ms ease",
+                }}
               />
             </div>
-            <div className="flex gap-1 pt-0.5">
+            <div style={{ display: "flex", gap: 4 }}>
               {steps.map((s, i) => (
                 <span
                   key={i}
-                  className={`h-1 flex-1 rounded-full transition-colors ${
-                    s.status === "done"
-                      ? "bg-emerald-500/70"
-                      : s.status === "error"
-                        ? "bg-rose-500"
-                        : s.status === "running"
-                          ? "bg-amber-400 pulse-live"
-                          : "bg-slate-800"
-                  }`}
+                  style={{
+                    height: 2,
+                    flex: 1,
+                    borderRadius: 1,
+                    background:
+                      s.status === "done"
+                        ? "#6b7280" // gray — confirmed offline
+                        : s.status === "error"
+                          ? "#ef4444"
+                          : s.status === "running"
+                            ? "#ef4444"
+                            : "#1a1a1a",
+                    transition: "background 200ms ease",
+                  }}
+                  className={s.status === "running" ? "pulse-live" : undefined}
                 />
               ))}
             </div>
@@ -113,13 +167,19 @@ export function ScenarioController({
 
         {state === "recovering" ? (
           <div className="flex flex-1 items-center gap-3">
-            <span className="rounded-sm bg-cyan-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300 ring-1 ring-cyan-500/40">
-              RECOVERY IN PROGRESS
-            </span>
-            <span className="font-mono text-[11px] text-slate-300">
+            <StatusPill color="#14b8a6" label="Recovery in progress" pulse />
+            <span style={{ fontSize: 11, color: "#888" }}>
               Reverse cascade · restoring affected nodes
             </span>
-            <span className="ml-auto font-mono text-[11px] tabular-nums text-slate-400">
+            <span
+              style={{
+                marginLeft: "auto",
+                fontSize: 11,
+                color: "#888",
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
               T+{elapsedSec.toFixed(1)}s
             </span>
           </div>
@@ -127,16 +187,26 @@ export function ScenarioController({
 
         {state === "nominal" ? (
           <div className="flex flex-1 items-center gap-3">
-            <span className="glow-emerald-box rounded-sm bg-emerald-500/15 px-3 py-0.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-300 ring-1 ring-emerald-500/40">
-              SYSTEM NOMINAL
-            </span>
-            <span className="text-[11px] text-slate-400">
+            <StatusPill color="#22c55e" label="System nominal" />
+            <span style={{ fontSize: 11, color: "#888" }}>
               All nodes restored · standing by
             </span>
             <button
               type="button"
               onClick={onReset}
-              className="ml-auto rounded-md border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-300 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+              style={{
+                marginLeft: "auto",
+                background: "transparent",
+                border: "1px solid #2a2a2a",
+                color: "#888",
+                padding: "5px 12px",
+                borderRadius: 6,
+                fontSize: 11,
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#888")}
             >
               Reset
             </button>
@@ -144,6 +214,47 @@ export function ScenarioController({
         ) : null}
       </div>
     </footer>
+  );
+}
+
+function StatusPill({
+  color,
+  label,
+  pulse,
+}: {
+  color: string;
+  label: string;
+  pulse?: boolean;
+}) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        background: `${color}1a`,
+        color,
+        padding: "3px 8px",
+        borderRadius: 4,
+        fontSize: 10,
+        fontWeight: 600,
+        textTransform: "uppercase",
+        letterSpacing: "0.1em",
+        border: `1px solid ${color}55`,
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: "50%",
+          background: color,
+        }}
+        className={pulse ? "pulse-live" : undefined}
+      />
+      {label}
+    </span>
   );
 }
 

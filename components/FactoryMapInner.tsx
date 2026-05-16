@@ -11,8 +11,8 @@ type NodeStatus = {
 };
 
 const PLANTS = [
-  { id: 'dearborn',    name: 'Dearborn, MI',   sub: 'Ford HQ · Rouge Complex', lat: 42.31, lon: -83.18, lx:   0, ly: -38 },
-  { id: 'chicago',     name: 'Chicago, IL',     sub: 'Chicago Assembly',        lat: 41.85, lon: -87.75, lx:   0, ly: -38 },
+  { id: 'dearborn',    name: 'Dearborn, MI',   sub: 'Ford HQ · Rouge Complex', lat: 42.31, lon: -83.18, lx:   0, ly: -54 },
+  { id: 'chicago',     name: 'Chicago, IL',     sub: 'Chicago Assembly',        lat: 41.85, lon: -87.75, lx: -36, ly: -38 },
   { id: 'kansas-city', name: 'Kansas City, MO', sub: 'Kansas City Assembly',    lat: 39.10, lon: -94.58, lx:   0, ly: -38 },
   { id: 'louisville',  name: 'Louisville, KY',  sub: 'Louisville Truck Plant',  lat: 38.20, lon: -85.65, lx:   0, ly: -38 },
   { id: 'cleveland',   name: 'Cleveland, OH',   sub: 'Cleveland Engine',        lat: 41.50, lon: -81.70, lx:  42, ly:   0 },
@@ -24,7 +24,10 @@ const PLANTS = [
 function statusColor(status: string | undefined): number {
   if (!status) return 0x475569;
   if (status === 'healthy') return 0x22d3ee;
-  if (status === 'degraded') return 0xf59e0b;
+  // Confirmed offline — the node has settled into a "failed" final state.
+  if (status === 'failed' || status === 'down' || status === 'offline')
+    return 0x6b7280; // gray
+  // Detection in progress / degraded — red.
   return 0xef4444;
 }
 

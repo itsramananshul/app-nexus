@@ -25,7 +25,7 @@ import {
   sleep,
 } from "./shared";
 
-const STEP_GAP_MS = 1500;
+const STEP_GAP_MS = 1200;
 
 export const WAREHOUSE_OUTAGE_STAGE_LABELS: readonly string[] = [
   "Drain warehouse product inventory",

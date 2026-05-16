@@ -20,28 +20,66 @@ export function RecoveryPanel({
 
   return (
     <>
-      <footer className="border-t border-emerald-500/20 bg-[#070b16]/95 backdrop-blur supports-[backdrop-filter]:bg-[#070b16]/80">
+      <footer
+        style={{
+          background: "#0a0a0a",
+          borderTop: "1px solid #1a1a1a",
+          flexShrink: 0,
+        }}
+      >
         <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-6 py-3 lg:flex-row lg:items-center lg:gap-6">
-          <div className="flex flex-col gap-0.5 lg:min-w-[260px]">
-            <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-cyan-300">
-              <span aria-hidden>⚡</span>
-              Scenario Complete · Recovery Mode
+          <div className="flex flex-col gap-0.5 lg:min-w-[220px]">
+            <h2
+              style={{
+                fontSize: 10,
+                color: "#444",
+                textTransform: "uppercase",
+                letterSpacing: "0.12em",
+                fontWeight: 600,
+              }}
+            >
+              Cascade complete · recovery
             </h2>
-            <p className="text-[10px] text-slate-500">
+            <p style={{ fontSize: 11, color: "#666" }}>
               Reverse cascade · restore operations
             </p>
           </div>
 
-          <dl className="grid flex-1 grid-cols-2 gap-x-6 gap-y-1 text-[11px] md:grid-cols-4">
+          <dl className="grid flex-1 grid-cols-2 gap-x-6 gap-y-1 md:grid-cols-4">
             <Stat label="Duration" value={report.durationLabel} />
-            <Stat label="Peak Exposure" value={report.exposureLabel} tone="text-rose-300" />
-            <Stat label="Nodes Affected" value={`${report.affectedCount}/${report.totalNodes}`} />
-            <Stat label="Cascade Depth" value={`${report.maxStage} stages`} />
+            <Stat label="Peak exposure" value={report.exposureLabel} color="#ef4444" />
+            <Stat label="Nodes affected" value={`${report.affectedCount}/${report.totalNodes}`} />
+            <Stat label="Cascade depth" value={`${report.maxStage} stages`} />
           </dl>
 
           <div className="flex items-center gap-2">
             {recovering ? (
-              <span className="rounded-md border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-cyan-300">
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "rgba(20,184,166,0.1)",
+                  color: "#14b8a6",
+                  padding: "5px 10px",
+                  borderRadius: 6,
+                  fontSize: 10,
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  border: "1px solid rgba(20,184,166,0.4)",
+                }}
+              >
+                <span
+                  aria-hidden
+                  className="pulse-live"
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#14b8a6",
+                  }}
+                />
                 Recovering · {currentLabel ?? "…"}
               </span>
             ) : (
@@ -49,18 +87,37 @@ export function RecoveryPanel({
                 <button
                   type="button"
                   onClick={onTriggerRecovery}
-                  className="glow-cyan-box inline-flex items-center gap-2 rounded-md border border-cyan-400/40 bg-cyan-500 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-950 shadow-lg hover:bg-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                  style={{
+                    background: "#0070f3",
+                    color: "#fff",
+                    border: "none",
+                    padding: "8px 14px",
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    letterSpacing: "0.02em",
+                  }}
                 >
-                  <span aria-hidden>🔄</span>
-                  Initiate Recovery Protocol
+                  Initiate AI Recovery
                 </button>
                 <button
                   type="button"
                   onClick={() => setReportOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-md border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-300 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+                  style={{
+                    background: "transparent",
+                    color: "#888",
+                    border: "1px solid #2a2a2a",
+                    padding: "8px 12px",
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "#888")}
                 >
-                  <span aria-hidden>📋</span>
-                  Generate Incident Report
+                  Incident report
                 </button>
               </>
             )}
@@ -81,16 +138,32 @@ export function RecoveryPanel({
 interface StatProps {
   label: string;
   value: string;
-  tone?: string;
+  color?: string;
 }
 
-function Stat({ label, value, tone = "text-slate-100" }: StatProps) {
+function Stat({ label, value, color = "#ffffff" }: StatProps) {
   return (
     <div>
-      <dt className="text-[9px] uppercase tracking-[0.2em] text-slate-500">
+      <dt
+        style={{
+          fontSize: 9,
+          color: "#555",
+          textTransform: "uppercase",
+          letterSpacing: "0.12em",
+          fontWeight: 600,
+        }}
+      >
         {label}
       </dt>
-      <dd className={`font-mono text-sm font-semibold tabular-nums ${tone}`}>
+      <dd
+        style={{
+          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+          fontSize: 13,
+          fontWeight: 600,
+          color,
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
         {value}
       </dd>
     </div>

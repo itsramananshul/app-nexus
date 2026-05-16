@@ -811,7 +811,7 @@ export default function Page() {
   }
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
       <TopBar
         totalNodes={nodes.length}
         statuses={displayStatuses}
@@ -874,9 +874,9 @@ export default function Page() {
           className="flex-1 overflow-hidden"
           style={{ background: "#000" }}
         >
-          <div className="h-full w-full grid grid-cols-1 grid-rows-[auto_auto] overflow-y-auto lg:grid-cols-[1fr_300px] lg:grid-rows-[1fr] lg:overflow-hidden">
+          <div className="h-full w-full grid grid-cols-1 grid-rows-[1fr_auto] lg:grid-cols-[1fr_300px] lg:grid-rows-[1fr] overflow-hidden">
             <div
-              className="relative min-w-0 overflow-hidden h-[60vh] lg:h-full"
+              className="relative min-w-0 h-full overflow-hidden"
               style={{ background: "#000", padding: "12px 16px" }}
             >
               <NetworkGraph
@@ -945,8 +945,10 @@ export default function Page() {
               {mapVisible ? (
                 <div
                   style={{
-                    height: 280,
-                    flexShrink: 0,
+                    // Globe takes a flex share of the right column, not a
+                    // fixed pixel height — fills any screen size.
+                    flex: "0 0 38%",
+                    minHeight: 200,
                     borderTop: "1px solid #1a1a1a",
                     background: "#000",
                     position: "relative",
@@ -1009,17 +1011,24 @@ export default function Page() {
                   <FactoryMap
                     nodes={nodes.map((n) => {
                       const s = statuses.get(n.id);
-                      const health = collapsingNodeIds.has(n.id)
-                        ? "unreachable"
-                        : s?.health;
+                      // Failed (confirmed offline) wins over everything.
+                      // Collapsing (detection in progress) is the red phase.
+                      const isFailed = failedNodeIds.has(n.id);
+                      const health = isFailed
+                        ? "failed"
+                        : collapsingNodeIds.has(n.id)
+                          ? "unreachable"
+                          : s?.health;
                       const status =
-                        health === "ok"
-                          ? "healthy"
-                          : health === "degraded"
-                            ? "degraded"
-                            : health === "unreachable"
-                              ? "critical"
-                              : "unknown";
+                        health === "failed"
+                          ? "failed"
+                          : health === "ok"
+                            ? "healthy"
+                            : health === "degraded"
+                              ? "degraded"
+                              : health === "unreachable"
+                                ? "critical"
+                                : "unknown";
                       return {
                         name: n.label,
                         status,
@@ -1255,17 +1264,22 @@ export default function Page() {
               <FactoryMap
                 nodes={nodes.map((n) => {
                   const s = displayStatuses.get(n.id);
-                  const health = collapsingNodeIds.has(n.id)
-                    ? "unreachable"
-                    : s?.health;
+                  const isFailed = failedNodeIds.has(n.id);
+                  const health = isFailed
+                    ? "failed"
+                    : collapsingNodeIds.has(n.id)
+                      ? "unreachable"
+                      : s?.health;
                   const status =
-                    health === "ok"
-                      ? "healthy"
-                      : health === "degraded"
-                        ? "degraded"
-                        : health === "unreachable"
-                          ? "critical"
-                          : "unknown";
+                    health === "failed"
+                      ? "failed"
+                      : health === "ok"
+                        ? "healthy"
+                        : health === "degraded"
+                          ? "degraded"
+                          : health === "unreachable"
+                            ? "critical"
+                            : "unknown";
                   return {
                     name: n.label,
                     status,
