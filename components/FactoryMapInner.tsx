@@ -11,14 +11,14 @@ type NodeStatus = {
 };
 
 const PLANTS = [
-  { id: 'dearborn',    name: 'Dearborn, MI',   sub: 'Ford HQ · Rouge Complex', lat: 42.31, lon: -83.18 },
-  { id: 'chicago',     name: 'Chicago, IL',     sub: 'Chicago Assembly',        lat: 41.85, lon: -87.75 },
-  { id: 'kansas-city', name: 'Kansas City, MO', sub: 'Kansas City Assembly',    lat: 39.10, lon: -94.58 },
-  { id: 'louisville',  name: 'Louisville, KY',  sub: 'Louisville Truck Plant',  lat: 38.20, lon: -85.65 },
-  { id: 'cleveland',   name: 'Cleveland, OH',   sub: 'Cleveland Engine',        lat: 41.50, lon: -81.70 },
-  { id: 'romeo',       name: 'Romeo, MI',       sub: 'Romeo Engine Plant',      lat: 42.80, lon: -83.01 },
-  { id: 'flat-rock',   name: 'Flat Rock, MI',   sub: 'Flat Rock Assembly',      lat: 42.10, lon: -83.28 },
-  { id: 'nashville',   name: 'Nashville, TN',   sub: 'SE Distribution Hub',     lat: 36.17, lon: -86.78 },
+  { id: 'dearborn',    name: 'Dearborn, MI',   sub: 'Ford HQ · Rouge Complex', lat: 42.31, lon: -83.18, lx:   0, ly: -38 },
+  { id: 'chicago',     name: 'Chicago, IL',     sub: 'Chicago Assembly',        lat: 41.85, lon: -87.75, lx:   0, ly: -38 },
+  { id: 'kansas-city', name: 'Kansas City, MO', sub: 'Kansas City Assembly',    lat: 39.10, lon: -94.58, lx:   0, ly: -38 },
+  { id: 'louisville',  name: 'Louisville, KY',  sub: 'Louisville Truck Plant',  lat: 38.20, lon: -85.65, lx:   0, ly: -38 },
+  { id: 'cleveland',   name: 'Cleveland, OH',   sub: 'Cleveland Engine',        lat: 41.50, lon: -81.70, lx:  42, ly:   0 },
+  { id: 'romeo',       name: 'Romeo, MI',       sub: 'Romeo Engine Plant',      lat: 42.80, lon: -83.01, lx: -42, ly: -20 },
+  { id: 'flat-rock',   name: 'Flat Rock, MI',   sub: 'Flat Rock Assembly',      lat: 42.10, lon: -83.28, lx: -48, ly:  10 },
+  { id: 'nashville',   name: 'Nashville, TN',   sub: 'SE Distribution Hub',     lat: 36.17, lon: -86.78, lx:   0, ly: -38 },
 ];
 
 function statusColor(status: string | undefined): number {
@@ -211,7 +211,10 @@ export default function FactoryMapInner({
     const labelSeries = chart.series.push(am5map.MapPointSeries.new(root, {}));
     if (showLabels) {
       labelSeries.bullets.push((root, _series, dataItem) => {
-        const plantName = (dataItem.dataContext as { plantName?: string } | undefined)?.plantName ?? '';
+        const ctx = dataItem.dataContext as { plantName?: string; labelDx?: number; labelDy?: number } | undefined;
+        const plantName = ctx?.plantName ?? '';
+        const dx = ctx?.labelDx ?? 0;
+        const dy = ctx?.labelDy ?? -38;
         const label = am5.Label.new(root, {
           text: plantName,
           fill: am5.color(0xffffff),
@@ -219,7 +222,8 @@ export default function FactoryMapInner({
           fontFamily: 'ui-sans-serif, system-ui, sans-serif',
           fontWeight: '500',
           centerX: am5.p50,
-          dy: -38,
+          dx,
+          dy,
           background: am5.RoundedRectangle.new(root, {
             fill: am5.color(0x000000),
             fillOpacity: 0.85,
@@ -275,6 +279,8 @@ export default function FactoryMapInner({
       labelSeries.data.push({
         geometry: { type: 'Point' as const, coordinates: [plant.lon, plant.lat] },
         plantName: plant.name,
+        labelDx: plant.lx,
+        labelDy: plant.ly,
       });
     });
   }, [nodes]);
