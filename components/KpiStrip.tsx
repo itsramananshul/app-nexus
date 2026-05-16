@@ -1,90 +1,307 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
+export type KpiScenarioState =
+  | "idle"
+  | "executing"
+  | "complete"
+  | "recovering"
+  | "nominal";
+
 interface KpiStripProps {
   totalNodes: number;
   healthyNodes: number;
-  estimatedSavings: number;
+  pollIntervalSec: number;
+  scenarioState: KpiScenarioState;
+  peakExposure: number;
+  elapsedMs: number;
+  costAvoided: number | null;
 }
 
 function fmtMoney(n: number): string {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1000) return `$${Math.round(n / 1000)}K`;
   return `$${Math.round(n)}`;
+}
+
+function fmtElapsed(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 export function KpiStrip({
   totalNodes,
   healthyNodes,
-  estimatedSavings,
+  pollIntervalSec,
+  scenarioState,
+  peakExposure,
+  elapsedMs,
+  costAvoided,
 }: KpiStripProps) {
   return (
     <div
-      className="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-3 md:gap-6 md:px-6"
+      className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 md:px-6"
       style={{
         background: "#0a0a0a",
         borderBottom: "1px solid #1a1a1a",
       }}
     >
-      <Stat
-        value={
-          <span>
-            45 min <span style={{ color: "#555" }}>→</span>{" "}
-            <span style={{ color: "#14b8a6" }}>90 sec</span>
-          </span>
-        }
-        label="Recovery time"
-      />
-      <Stat
-        value={
-          <span>
-            <span style={{ color: healthyNodes < totalNodes ? "#f59e0b" : "#22c55e" }}>
-              {healthyNodes}
-            </span>
-            <span style={{ color: "#555" }}> / {totalNodes}</span>{" "}
-            <span style={{ color: "#888", fontSize: 14, fontWeight: 500 }}>healthy</span>
-          </span>
-        }
-        label="Nodes online"
-      />
-      <Stat
-        value={<span>{fmtMoney(estimatedSavings)}</span>}
-        label="Cost avoided per incident (est.)"
-      />
+      {scenarioState === "idle" ? (
+        <IdleSummary
+          totalNodes={totalNodes}
+          healthyNodes={healthyNodes}
+          pollIntervalSec={pollIntervalSec}
+        />
+      ) : scenarioState === "executing" || scenarioState === "complete" ? (
+        <ActiveIncident peakExposure={peakExposure} elapsedMs={elapsedMs} />
+      ) : scenarioState === "recovering" ? (
+        <RecoveryProgress elapsedMs={elapsedMs} />
+      ) : (
+        <RecoveryComplete
+          costAvoided={costAvoided}
+          elapsedMs={elapsedMs}
+        />
+      )}
     </div>
   );
 }
 
-function Stat({
-  value,
-  label,
+function IdleSummary({
+  totalNodes,
+  healthyNodes,
+  pollIntervalSec,
 }: {
-  value: React.ReactNode;
-  label: string;
+  totalNodes: number;
+  healthyNodes: number;
+  pollIntervalSec: number;
 }) {
   return (
-    <div>
-      <div
-        style={{
-          fontSize: 20,
-          fontWeight: 600,
-          color: "#fff",
-          lineHeight: 1.2,
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
-        {value}
-      </div>
-      <div
-        style={{
-          fontSize: 11,
-          color: "#555",
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-          fontWeight: 500,
-          marginTop: 4,
-        }}
-      >
-        {label}
-      </div>
+    <div
+      style={{
+        fontSize: 13,
+        color: "#888",
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 16,
+      }}
+    >
+      <span>
+        <span style={{ color: "#fff", fontWeight: 600 }}>{totalNodes}</span>{" "}
+        nodes monitored
+      </span>
+      <Dot />
+      <span>
+        <span style={{ color: "#fff", fontWeight: 600 }}>{pollIntervalSec}s</span>{" "}
+        refresh
+      </span>
+      <Dot />
+      <span>
+        <span
+          style={{
+            color: healthyNodes === totalNodes ? "#22c55e" : "#f59e0b",
+            fontWeight: 600,
+          }}
+        >
+          {healthyNodes}/{totalNodes}
+        </span>{" "}
+        healthy
+      </span>
+      <Dot />
+      <span style={{ color: "#22c55e" }}>0 incidents</span>
     </div>
+  );
+}
+
+function ActiveIncident({
+  peakExposure,
+  elapsedMs,
+}: {
+  peakExposure: number;
+  elapsedMs: number;
+}) {
+  return (
+    <div
+      style={{
+        fontSize: 13,
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 18,
+      }}
+    >
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          color: "#ef4444",
+          fontWeight: 600,
+          fontSize: 12,
+          textTransform: "uppercase",
+          letterSpacing: "0.1em",
+        }}
+      >
+        <PulseDot />
+        Cascade active
+      </span>
+      <Dot />
+      <span style={{ color: "#888" }}>
+        <span
+          style={{
+            color: "#ef4444",
+            fontWeight: 600,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {fmtMoney(peakExposure)}
+        </span>{" "}
+        exposure
+      </span>
+      <Dot />
+      <span style={{ color: "#888" }}>
+        <span
+          style={{
+            color: "#fff",
+            fontWeight: 600,
+            fontVariantNumeric: "tabular-nums",
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+          }}
+        >
+          {fmtElapsed(elapsedMs)}
+        </span>{" "}
+        elapsed
+      </span>
+    </div>
+  );
+}
+
+function RecoveryProgress({ elapsedMs }: { elapsedMs: number }) {
+  return (
+    <div
+      style={{
+        fontSize: 13,
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 16,
+      }}
+    >
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          color: "#14b8a6",
+          fontWeight: 600,
+          fontSize: 12,
+          textTransform: "uppercase",
+          letterSpacing: "0.1em",
+        }}
+      >
+        <PulseDot color="#14b8a6" />
+        Recovery in progress
+      </span>
+      <Dot />
+      <span style={{ color: "#888" }}>
+        <span
+          style={{
+            color: "#fff",
+            fontWeight: 600,
+            fontVariantNumeric: "tabular-nums",
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+          }}
+        >
+          {fmtElapsed(elapsedMs)}
+        </span>{" "}
+        elapsed
+      </span>
+    </div>
+  );
+}
+
+function RecoveryComplete({
+  costAvoided,
+  elapsedMs,
+}: {
+  costAvoided: number | null;
+  elapsedMs: number;
+}) {
+  return (
+    <div
+      style={{
+        fontSize: 13,
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 16,
+      }}
+    >
+      <span style={{ color: "#22c55e", fontWeight: 600, fontSize: 16 }}>✓</span>
+      <span style={{ color: "#888" }}>
+        <span
+          style={{
+            color: "#22c55e",
+            fontWeight: 700,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {fmtMoney(costAvoided ?? 0)}
+        </span>{" "}
+        saved
+      </span>
+      <Dot />
+      <span style={{ color: "#888" }}>
+        Recovered in{" "}
+        <span
+          style={{
+            color: "#fff",
+            fontWeight: 600,
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+          }}
+        >
+          {fmtElapsed(elapsedMs)}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+function Dot() {
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: 3,
+        height: 3,
+        borderRadius: "50%",
+        background: "#333",
+        display: "inline-block",
+      }}
+    />
+  );
+}
+
+function PulseDot({ color = "#ef4444" }: { color?: string }) {
+  const [bright, setBright] = useState(true);
+  useEffect(() => {
+    const id = setInterval(() => setBright((v) => !v), 600);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: 8,
+        height: 8,
+        borderRadius: "50%",
+        background: color,
+        opacity: bright ? 1 : 0.35,
+        transition: "opacity 200ms ease",
+      }}
+    />
   );
 }

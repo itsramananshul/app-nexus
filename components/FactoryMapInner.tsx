@@ -265,23 +265,20 @@ export default function FactoryMapInner({ nodes, history: _history }: { nodes: N
   }, [nodes]);
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000000' }}>
-      <div ref={divRef} style={{ width: '100%', height: '100%' }} />
-
-      <div style={{ position: 'absolute', bottom: 16, right: 20, zIndex: 10 }}
-           className="flex flex-col gap-1.5">
-        {[
-          { color: '#22d3ee', label: 'Healthy' },
-          { color: '#f59e0b', label: 'Degraded' },
-          { color: '#ef4444', label: 'Critical' },
-          { color: '#475569', label: 'No Signal' },
-        ].map(({ color, label }) => (
-          <div key={label} className="flex items-center gap-2">
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
-            <span className="text-xs text-slate-400">{label}</span>
-          </div>
-        ))}
-      </div>
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        minHeight: 0,
+        background: '#000000',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        ref={divRef}
+        style={{ width: '100%', height: '100%', minHeight: 0 }}
+      />
     </div>
   );
 }

@@ -845,7 +845,19 @@ export default function Page() {
             healthyNodes={
               Array.from(statuses.values()).filter((s) => s.health === "ok").length
             }
-            estimatedSavings={284_000}
+            pollIntervalSec={3}
+            scenarioState={
+              scenarioState === "confirming" ? "idle" : scenarioState
+            }
+            peakExposure={peakExposure}
+            elapsedMs={elapsedMs}
+            costAvoided={
+              roiData
+                ? roiData.productionLoss +
+                  roiData.emergencyLabor +
+                  roiData.expeditedShipping
+                : null
+            }
           />
         ) : null}
         <main
@@ -864,6 +876,18 @@ export default function Page() {
                 now={now}
                 isLoadingKeys={!keysLoaded}
                 history={history}
+                affectedNodeIds={
+                  scenarioState === "executing" ||
+                  scenarioState === "complete" ||
+                  scenarioState === "recovering"
+                    ? new Set(SCENARIO_AFFECTED.map((a) => a.id))
+                    : undefined
+                }
+                scenarioActive={
+                  scenarioState === "executing" ||
+                  scenarioState === "complete" ||
+                  scenarioState === "recovering"
+                }
               />
             </div>
 

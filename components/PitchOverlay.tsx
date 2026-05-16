@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BeforeSimulation } from "./BeforeSimulation";
+import { AfterSimulation } from "./AfterSimulation";
 import { SCENARIO_OPTIONS, type ScenarioKey } from "./TopBar";
 
 interface PitchOverlayProps {
@@ -16,10 +17,11 @@ interface PitchOverlayProps {
 }
 
 const STEPS = [
-  { id: 0, title: "The Problem", subtitle: "Legacy ERP — the way operations sees a fault today" },
-  { id: 1, title: "Live Network", subtitle: "Nexus polls every node every 3 seconds" },
-  { id: 2, title: "Trigger Incident", subtitle: "Pick a scenario; watch the cascade light up the graph" },
-  { id: 3, title: "AI Recovery", subtitle: "One click reverses the cascade and books the savings" },
+  { id: 0, title: "The Problem", subtitle: "Traditional middleware integration — why it breaks" },
+  { id: 1, title: "The Solution", subtitle: "Open Intelligence Interconnect Model — a living network" },
+  { id: 2, title: "Live Network", subtitle: "OpenPrem monitoring every node, every 3 seconds" },
+  { id: 3, title: "Trigger Incident", subtitle: "Pick a scenario — watch the network respond" },
+  { id: 4, title: "AI Recovery", subtitle: "One click. 90 seconds. Fully reversed." },
 ];
 
 function fmtMoney(n: number): string {
@@ -187,10 +189,16 @@ export function PitchOverlay({
         </div>
 
         {/* Step content */}
-        <div style={{ minHeight: step === 0 ? 0 : 320, flex: step === 0 ? 1 : undefined }}>
+        <div
+          style={{
+            minHeight: step === 0 || step === 1 ? 0 : 320,
+            flex: step === 0 || step === 1 ? 1 : undefined,
+          }}
+        >
           {step === 0 ? <BeforeSimulation /> : null}
+          {step === 1 ? <AfterSimulation /> : null}
 
-          {step === 1 ? (
+          {step === 2 ? (
             <StepCard>
               <p style={{ fontSize: 13, color: "#888", lineHeight: 1.6 }}>
                 Behind this card, every node in the supply network is being
@@ -230,7 +238,7 @@ export function PitchOverlay({
             </StepCard>
           ) : null}
 
-          {step === 2 ? (
+          {step === 3 ? (
             <StepCard>
               <p style={{ fontSize: 13, color: "#888", lineHeight: 1.6, marginBottom: 12 }}>
                 Pick a scenario. The dropdown also lives in the top bar — but
@@ -280,13 +288,13 @@ export function PitchOverlay({
                     fontWeight: 500,
                   }}
                 >
-                  Cascade in progress — advance to step 4 to run recovery.
+                  Cascade in progress — advance to step 5 to run recovery.
                 </div>
               ) : null}
             </StepCard>
           ) : null}
 
-          {step === 3 ? (
+          {step === 4 ? (
             <StepCard>
               {recoveryComplete && costAvoided !== null ? (
                 <div style={{ textAlign: "center", padding: "24px 0" }}>

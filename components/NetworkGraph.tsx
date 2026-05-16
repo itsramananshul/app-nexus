@@ -16,6 +16,10 @@ interface NetworkGraphProps {
   now: Date;
   isLoadingKeys?: boolean;
   history?: Map<string, number[]>;
+  // When a scenario is active, the set of node ids it targets. Cards in this
+  // set get an "AFFECTED" badge; non-affected cards visually recede.
+  affectedNodeIds?: Set<string>;
+  scenarioActive?: boolean;
 }
 
 type NodePos = { x: number; y: number };
@@ -118,6 +122,8 @@ export function NetworkGraph({
   now,
   isLoadingKeys = false,
   history,
+  affectedNodeIds,
+  scenarioActive = false,
 }: NetworkGraphProps) {
   const byId = useMemo(() => {
     const m = new Map<string, NodeConfig>();
@@ -294,6 +300,7 @@ export function NetworkGraph({
             if (!pos) return null;
             const status = statuses.get(node.id);
             const collapsing = collapsingNodeIds.has(node.id);
+            const isAffected = affectedNodeIds?.has(node.id) ?? false;
             return (
               <NodeCard
                 key={node.id}
@@ -305,6 +312,8 @@ export function NetworkGraph({
                 loading={isLoadingKeys}
                 ago={fmtAgo(now, status?.lastChecked)}
                 history={history?.get(node.id) ?? []}
+                affected={isAffected}
+                scenarioActive={scenarioActive}
               />
             );
           })}
@@ -323,6 +332,8 @@ interface NodeCardProps {
   loading: boolean;
   ago: string;
   history: number[];
+  affected?: boolean;
+  scenarioActive?: boolean;
 }
 
 function NodeCard({
@@ -334,6 +345,8 @@ function NodeCard({
   loading,
   ago,
   history,
+  affected = false,
+  scenarioActive = false,
 }: NodeCardProps) {
   const health = status?.health;
   const noKey = !hasKey;
@@ -384,6 +397,10 @@ function NodeCard({
     ? secondaryMetricFor(node.type, status.details)
     : null;
 
+  // When a scenario is running, dim cards that aren't on the affected list
+  // so the eye lands on the relevant nodes.
+  const dim = scenarioActive && !affected;
+
   return (
     <div
       className="absolute overflow-hidden transition-colors"
@@ -397,6 +414,8 @@ function NodeCard({
         border: `1px solid ${borderColor}`,
         borderRadius: 8,
         padding: 12,
+        opacity: dim ? 0.55 : 1,
+        transition: "opacity 200ms ease, border-color 120ms ease",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = "#0f0f0f";
@@ -434,6 +453,24 @@ function NodeCard({
             </p>
           </div>
         </div>
+        {scenarioActive && affected ? (
+          <span
+            aria-label="Affected"
+            style={{
+              background: "rgba(239,68,68,0.15)",
+              color: "#ef4444",
+              fontSize: 9,
+              fontWeight: 700,
+              padding: "2px 5px",
+              borderRadius: 3,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              flexShrink: 0,
+            }}
+          >
+            Affected
+          </span>
+        ) : null}
       </div>
       <div className="mt-2 flex items-center justify-between gap-2">
         <div className="min-w-0 flex-1 truncate">

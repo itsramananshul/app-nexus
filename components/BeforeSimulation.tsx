@@ -3,658 +3,530 @@
 import { useEffect, useState } from "react";
 
 /**
- * Fake legacy ERP — intentionally ugly Win98-styled SAP-circa-2009 dashboard
- * used in pitch mode to make the audience FEEL the pain of the old system
- * before the Nexus demo flips on.
+ * BEFORE — Traditional middleware integration architecture.
  *
- * Self-contained: no real data, no real endpoints — all timers and modals
- * are local state. Renders fine on a black page because every surface here
- * uses an explicit non-black background.
+ * Left column: SVG diagram of Sources → Middleware → Consumers, with a
+ * silent-failure simulation flashing a random middleware box every 4s.
+ * Right column: three failure-mode scenario cards with expanded detail.
  */
 
-interface Row {
-  node: string;
-  status: "ONLINE" | "OFFLINE" | "UNKNOWN";
-  ageMs: number;
-}
-
-const INITIAL_ROWS: Row[] = [
-  { node: "Dearborn F1", status: "ONLINE", ageMs: 4 * 3600_000 },
-  { node: "Detroit F2", status: "OFFLINE", ageMs: 3 * 3600_000 + 48 * 60_000 },
-  { node: "Toledo W1", status: "UNKNOWN", ageMs: 6 * 3600_000 },
-  { node: "Flint W2", status: "ONLINE", ageMs: 4 * 3600_000 },
-];
-
-function fmtAge(ms: number): string {
-  const total = Math.floor(ms / 1000);
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  return `${h}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s ago`;
-}
-
-function fmtAgeShort(ms: number): string {
-  const total = Math.floor(ms / 1000);
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  return `${h}h ${String(m).padStart(2, "0")}m`;
-}
-
-const RAISED_BORDER: React.CSSProperties = {
-  border: "2px solid",
-  borderColor: "#fff #808080 #808080 #fff",
-};
-const SUNKEN_BORDER: React.CSSProperties = {
-  border: "2px solid",
-  borderColor: "#808080 #fff #fff #808080",
-};
+const MIDDLEWARE = ["Message Broker", "API Gateway", "ETL Pipeline"];
+const SOURCES = ["Factory ERP", "Warehouse WMS", "Corporate SAP"];
+const CONSUMERS = ["Analytics", "Orders", "Support"];
 
 export function BeforeSimulation() {
-  const [rows, setRows] = useState<Row[]>(() =>
-    INITIAL_ROWS.map((r) => ({ ...r })),
-  );
-  const [active, setActive] = useState<"dashboard" | "inventory" | "production" | "shipments" | "it">(
-    "dashboard",
-  );
-  const [phoneOpen, setPhoneOpen] = useState(false);
-  const [phoneStage, setPhoneStage] = useState<"calling" | "hold">("calling");
-  const [ticketOpen, setTicketOpen] = useState(false);
-  const [ticketSubmitted, setTicketSubmitted] = useState<string | null>(null);
-  const [refreshingId, setRefreshingId] = useState<string | null>(null);
-  const [refreshError, setRefreshError] = useState<string | null>(null);
-  const [steps, setSteps] = useState<number>(0);
+  const [failedIdx, setFailedIdx] = useState<number | null>(null);
 
-  // Timers count up every second — the "Last Updated" never gets fresher.
+  // Random middleware fails every 4s, recovers after 2s
   useEffect(() => {
-    const id = setInterval(() => {
-      setRows((prev) => prev.map((r) => ({ ...r, ageMs: r.ageMs + 1000 })));
-    }, 1000);
-    return () => clearInterval(id);
+    let mounted = true;
+    const tick = () => {
+      if (!mounted) return;
+      const i = Math.floor(Math.random() * MIDDLEWARE.length);
+      setFailedIdx(i);
+      setTimeout(() => mounted && setFailedIdx(null), 2000);
+    };
+    const id = setInterval(tick, 4000);
+    tick();
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
   }, []);
-
-  // Step-by-step "what happens next" panel animates in steps 1..5.
-  useEffect(() => {
-    const id = setInterval(() => {
-      setSteps((s) => (s < 5 ? s + 1 : s));
-    }, 1500);
-    return () => clearInterval(id);
-  }, []);
-
-  // Phone modal: calling → hold after 2s.
-  useEffect(() => {
-    if (!phoneOpen) return;
-    setPhoneStage("calling");
-    const id = setTimeout(() => setPhoneStage("hold"), 2000);
-    return () => clearTimeout(id);
-  }, [phoneOpen]);
-
-  const onClickIT = () => {
-    setActive("it");
-    setPhoneOpen(true);
-  };
-  const onRefreshToledo = () => {
-    setRefreshError(null);
-    setRefreshingId("Toledo W1");
-    setTimeout(() => {
-      setRefreshingId(null);
-      setRefreshError("Connection timeout. Please try again.");
-    }, 3000);
-  };
-  const onOpenTicket = () => {
-    setTicketOpen(true);
-    setTicketSubmitted(null);
-  };
-  const onSubmitTicket = () => {
-    setTicketSubmitted(
-      "Ticket #INC-2848 created. Assigned to: unassigned. ETA: Unknown.",
-    );
-  };
 
   return (
     <div
-      className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_240px]"
+      className="grid grid-cols-1 gap-4 md:grid-cols-[3fr_2fr]"
       style={{
-        background: "#c0c0c0",
-        color: "#000",
-        fontFamily: '"Courier New", "Lucida Console", monospace',
-        padding: 12,
-        borderRadius: 4,
-        ...RAISED_BORDER,
+        background: "transparent",
+        color: "#e5e7eb",
       }}
     >
-      {/* Left — fake ERP */}
-      <div style={{ background: "#c0c0c0", ...SUNKEN_BORDER }}>
-        {/* Title bar */}
-        <div
-          style={{
-            background: "#000080",
-            color: "#fff",
-            padding: "4px 8px",
-            fontSize: 11,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
-          }}
-        >
-          <span>Ford Manufacturing ERP v4.2 — Plant Operations Console</span>
-          <span style={{ color: "#ff8080", fontSize: 10 }}>
-            ⚠ Last sync: 4h 12m ago
-          </span>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 0 }}>
-          {/* Left nav */}
-          <nav
-            style={{
-              background: "#c0c0c0",
-              padding: 6,
-              ...SUNKEN_BORDER,
-              borderRight: "2px solid #808080",
-            }}
-          >
-            <NavItem
-              label="Dashboard"
-              active={active === "dashboard"}
-              onClick={() => setActive("dashboard")}
-            />
-            <NavItem
-              label="Inventory"
-              active={active === "inventory"}
-              onClick={() => setActive("inventory")}
-            />
-            <NavItem
-              label="Production"
-              active={active === "production"}
-              onClick={() => setActive("production")}
-            />
-            <NavItem
-              label="Shipments"
-              active={active === "shipments"}
-              onClick={() => setActive("shipments")}
-            />
-            <NavItem label="IT Support" active={active === "it"} onClick={onClickIT} />
-          </nav>
-
-          {/* Main area */}
-          <main
-            style={{
-              background: "#ffffff",
-              padding: 10,
-              fontSize: 11,
-              color: "#000",
-              fontFamily: '"Courier New", monospace',
-              minHeight: 300,
-              maxHeight: 360,
-              overflowY: "auto",
-            }}
-          >
-            {/* Alert banner */}
-            <div
-              style={{
-                background: "#ffff80",
-                border: "2px solid #c00",
-                padding: 8,
-                marginBottom: 10,
-                color: "#900",
-                fontWeight: 700,
-                fontSize: 11,
-              }}
-            >
-              ⚠ CRITICAL: Detroit Assembly Line 3 — OFFLINE. Contact IT
-              ext. 4821. Ticket #INC-2847 opened 3h 47m ago. Status:
-              PENDING ASSIGNMENT
-            </div>
-
-            {/* Data table */}
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
-              <thead>
-                <tr style={{ background: "#e0e0e0" }}>
-                  <Th>Node</Th>
-                  <Th>Status</Th>
-                  <Th>Last Updated</Th>
-                  <Th>Action</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.node} style={{ borderTop: "1px solid #c0c0c0" }}>
-                    <Td>{r.node}</Td>
-                    <Td>
-                      <span
-                        style={{
-                          color:
-                            r.status === "ONLINE"
-                              ? "#008000"
-                              : r.status === "OFFLINE"
-                                ? "#c00"
-                                : "#a07000",
-                        }}
-                      >
-                        ● {r.status}
-                      </span>
-                    </Td>
-                    <Td>{fmtAge(r.ageMs)}</Td>
-                    <Td>
-                      {r.node === "Toledo W1" ? (
-                        <BtnSmall onClick={onRefreshToledo} disabled={refreshingId === "Toledo W1"}>
-                          {refreshingId === "Toledo W1" ? "⏳ …" : "Refresh"}
-                        </BtnSmall>
-                      ) : r.node === "Detroit F2" ? (
-                        <BtnSmall onClick={onOpenTicket}>Ticket</BtnSmall>
-                      ) : (
-                        <span style={{ color: "#808080" }}>—</span>
-                      )}
-                    </Td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {refreshError ? (
-              <div
-                style={{
-                  marginTop: 8,
-                  color: "#c00",
-                  fontSize: 10,
-                }}
-              >
-                {refreshError}
-              </div>
-            ) : null}
-
-            <div
-              style={{
-                marginTop: 14,
-                color: "#444",
-                fontSize: 10,
-                fontStyle: "italic",
-              }}
-            >
-              ⏳ Loading production data… please wait (this may take several
-              minutes)
-            </div>
-          </main>
-        </div>
-
-        {/* Footer bar */}
-        <div
-          style={{
-            background: "#c0c0c0",
-            ...RAISED_BORDER,
-            padding: "4px 8px",
-            fontSize: 10,
-            color: "#333",
-            fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
-          }}
-        >
-          Ford ERP v4.2.1 © 2009 SAP AG | Session expires: 08:32 | IT Helpdesk:
-          ext. 4821
-        </div>
-      </div>
-
-      {/* Right — what manual recovery looks like */}
-      <aside
-        style={{
-          background: "#fff",
-          color: "#000",
-          padding: 12,
-          fontSize: 11,
-          border: "2px solid",
-          borderColor: "#808080 #fff #fff #808080",
-        }}
-      >
-        <div style={{ fontSize: 12, color: "#333", fontWeight: 700, marginBottom: 8 }}>
-          What happens next
-        </div>
-        <ol style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          {[
-            { label: "Operator notices alarm", t: "+12 min" },
-            { label: "Calls IT Helpdesk", t: "+18 min" },
-            { label: "On hold / ticket queued", t: "+32 min" },
-            { label: "Manager paged", t: "+38 min" },
-            { label: "Manual reroute begins", t: "+45 min" },
-          ].map((step, i) => {
-            const visible = steps > i;
-            const isLast = i === 4;
-            return (
-              <li
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "6px 0",
-                  opacity: visible ? 1 : 0,
-                  transform: visible ? "translateY(0)" : "translateY(4px)",
-                  transition: "opacity 300ms ease, transform 300ms ease",
-                  borderTop: i === 0 ? "none" : "1px dashed #ccc",
-                }}
-              >
-                <span
-                  style={{
-                    width: 18,
-                    height: 18,
-                    background: "#c00",
-                    color: "#fff",
-                    borderRadius: "50%",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    flexShrink: 0,
-                  }}
-                >
-                  {i + 1}
-                </span>
-                <span style={{ flex: 1, fontSize: 11, color: "#333", fontFamily: '"MS Sans Serif", Tahoma, sans-serif' }}>
-                  {step.label}
-                  {isLast && visible ? (
-                    <div style={{ color: "#c00", fontSize: 10, marginTop: 2 }}>
-                      System restored. 847 orders delayed. ~$284,000 in losses.
-                    </div>
-                  ) : null}
-                </span>
-                <span style={{ fontSize: 10, color: "#666" }}>{step.t}</span>
-              </li>
-            );
-          })}
-        </ol>
-        {steps >= 5 ? (
-          <div
-            style={{
-              marginTop: 12,
-              fontSize: 28,
-              fontWeight: 700,
-              color: "#c00",
-              textAlign: "center",
-              animation: "before-pulse 1.6s ease-in-out infinite",
-            }}
-          >
-            $284K
-          </div>
-        ) : null}
-        <style jsx>{`
-          @keyframes before-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.45; }
-          }
-        `}</style>
-      </aside>
-
-      {/* IT Support phone modal */}
-      {phoneOpen ? (
-        <Modal onClose={() => setPhoneOpen(false)} title="IT Helpdesk · ext. 4821">
-          {phoneStage === "calling" ? (
-            <div style={{ padding: 12, fontFamily: '"MS Sans Serif", Tahoma, sans-serif' }}>
-              <div style={{ fontSize: 16, marginBottom: 8 }}>📞</div>
-              <div style={{ fontSize: 12, color: "#000" }}>
-                Calling IT Helpdesk ext. 4821…
-              </div>
-            </div>
-          ) : (
-            <div style={{ padding: 12, fontFamily: '"MS Sans Serif", Tahoma, sans-serif' }}>
-              <div style={{ fontSize: 14, marginBottom: 6 }}>
-                On hold. Estimated wait: <strong>14 minutes.</strong>
-              </div>
-              <div style={{ color: "#666", fontSize: 11, marginBottom: 8 }}>
-                Please remain on the line. Your call is important to us.
-              </div>
-              <HoldDots />
-            </div>
-          )}
-        </Modal>
-      ) : null}
-
-      {/* Ticket modal */}
-      {ticketOpen ? (
-        <Modal onClose={() => setTicketOpen(false)} title="Create Incident Ticket">
-          {!ticketSubmitted ? (
-            <div style={{ padding: 12, fontFamily: '"MS Sans Serif", Tahoma, sans-serif', fontSize: 11 }}>
-              <Field label="Priority">
-                <select style={selectStyle}>
-                  <option>P1 — Critical</option>
-                  <option>P2 — High</option>
-                  <option>P3 — Medium</option>
-                  <option>P4 — Low</option>
-                </select>
-              </Field>
-              <Field label="Description">
-                <textarea
-                  rows={4}
-                  defaultValue="Detroit Assembly Line 3 reporting OFFLINE. Production halted across station 11–15. Multiple downstream orders affected. Please dispatch."
-                  style={{
-                    ...selectStyle,
-                    width: "100%",
-                    fontFamily: '"Courier New", monospace',
-                  }}
-                />
-              </Field>
-              <button
-                type="button"
-                onClick={onSubmitTicket}
-                style={{
-                  marginTop: 8,
-                  ...RAISED_BORDER,
-                  background: "#c0c0c0",
-                  padding: "4px 14px",
-                  cursor: "pointer",
-                  fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
-                  fontSize: 11,
-                }}
-              >
-                Submit
-              </button>
-            </div>
-          ) : (
-            <div style={{ padding: 14, fontFamily: '"MS Sans Serif", Tahoma, sans-serif', fontSize: 12 }}>
-              {ticketSubmitted}
-            </div>
-          )}
-        </Modal>
-      ) : null}
+      <ArchitectureDiagram failedIdx={failedIdx} />
+      <BeforeScenarios />
     </div>
   );
-
-  // Marker for fmtAgeShort so it's not flagged unused in editor lints.
-  void fmtAgeShort;
 }
 
-function NavItem({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        display: "block",
-        width: "100%",
-        padding: "4px 6px",
-        textAlign: "left",
-        background: active ? "#000080" : "transparent",
-        color: active ? "#fff" : "#000",
-        border: "none",
-        fontSize: 11,
-        fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
-        cursor: "pointer",
-      }}
-    >
-      {label}
-    </button>
-  );
-}
+// ─── LEFT: Architecture diagram ──────────────────────────────────────────
 
-function Th({ children }: { children: React.ReactNode }) {
-  return (
-    <th
-      style={{
-        textAlign: "left",
-        padding: "4px 6px",
-        fontSize: 10,
-        fontWeight: 700,
-        borderBottom: "1px solid #808080",
-        fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
-      }}
-    >
-      {children}
-    </th>
-  );
-}
-function Td({ children }: { children: React.ReactNode }) {
-  return (
-    <td style={{ padding: "4px 6px", fontSize: 11 }}>
-      {children}
-    </td>
-  );
-}
-function BtnSmall({
-  onClick,
-  children,
-  disabled,
-}: {
-  onClick: () => void;
-  children: React.ReactNode;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        ...RAISED_BORDER,
-        background: "#c0c0c0",
-        padding: "2px 8px",
-        fontSize: 10,
-        cursor: disabled ? "wait" : "pointer",
-        fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
-      }}
-    >
-      {children}
-    </button>
-  );
-}
+function ArchitectureDiagram({ failedIdx }: { failedIdx: number | null }) {
+  const W = 480;
+  const H = 320;
+  const colW = W / 3;
+  const yTop = 40;
+  const yMid = 150;
+  const yBot = 260;
 
-function Modal({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
+  const boxW = 110;
+  const boxH = 36;
+
+  const pos = (col: number, y: number) => ({
+    x: col * colW + (colW - boxW) / 2,
+    y,
+  });
+
   return (
     <div
-      onClick={onClose}
       style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.4)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 80,
+        background: "#0a0a0a",
+        border: "1px solid #1a1a1a",
+        borderRadius: 10,
+        padding: 16,
       }}
     >
       <div
-        onClick={(e) => e.stopPropagation()}
         style={{
-          background: "#c0c0c0",
-          ...RAISED_BORDER,
-          minWidth: 320,
-          color: "#000",
+          fontSize: 10,
+          color: "#444",
+          textTransform: "uppercase",
+          letterSpacing: "0.12em",
+          fontWeight: 600,
+          marginBottom: 8,
         }}
       >
-        <div
-          style={{
-            background: "#000080",
-            color: "#fff",
-            padding: "3px 8px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            fontSize: 11,
-            fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
-          }}
-        >
-          <span>{title}</span>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              ...RAISED_BORDER,
-              background: "#c0c0c0",
-              color: "#000",
-              padding: "0 6px",
-              fontSize: 11,
-              cursor: "pointer",
-            }}
-          >
-            ×
-          </button>
-        </div>
-        {children}
+        Traditional Integration Architecture
+      </div>
+      <div style={{ position: "relative" }}>
+        <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block" }}>
+          {/* Connections: every source → every middleware → every consumer */}
+          {SOURCES.map((_, srcCol) =>
+            MIDDLEWARE.map((_, midCol) => {
+              const sp = pos(srcCol, yTop);
+              const mp = pos(midCol, yMid);
+              const failed = failedIdx === midCol;
+              return (
+                <line
+                  key={`s${srcCol}-m${midCol}`}
+                  x1={sp.x + boxW / 2}
+                  y1={sp.y + boxH}
+                  x2={mp.x + boxW / 2}
+                  y2={mp.y}
+                  stroke={failed ? "#ef4444" : "#1f1f1f"}
+                  strokeWidth={1}
+                  strokeDasharray={failed ? "4 3" : undefined}
+                />
+              );
+            }),
+          )}
+          {MIDDLEWARE.map((_, midCol) =>
+            CONSUMERS.map((_, conCol) => {
+              const mp = pos(midCol, yMid);
+              const cp = pos(conCol, yBot);
+              const failed = failedIdx === midCol;
+              return (
+                <line
+                  key={`m${midCol}-c${conCol}`}
+                  x1={mp.x + boxW / 2}
+                  y1={mp.y + boxH}
+                  x2={cp.x + boxW / 2}
+                  y2={cp.y}
+                  stroke={failed ? "#ef4444" : "#1f1f1f"}
+                  strokeWidth={1}
+                  strokeDasharray={failed ? "4 3" : undefined}
+                />
+              );
+            }),
+          )}
+
+          {/* Sources */}
+          {SOURCES.map((label, i) => {
+            const p = pos(i, yTop);
+            return (
+              <Box
+                key={`src-${label}`}
+                x={p.x}
+                y={p.y}
+                w={boxW}
+                h={boxH}
+                label={label}
+                bg="#111"
+                stroke="#1e1e1e"
+                color="#888"
+              />
+            );
+          })}
+
+          {/* Middleware */}
+          {MIDDLEWARE.map((label, i) => {
+            const p = pos(i, yMid);
+            const failed = failedIdx === i;
+            return (
+              <g key={`mid-${label}`}>
+                {failed ? (
+                  <rect
+                    x={p.x - 4}
+                    y={p.y - 4}
+                    width={boxW + 8}
+                    height={boxH + 8}
+                    rx={6}
+                    fill="rgba(239,68,68,0.15)"
+                  />
+                ) : null}
+                <Box
+                  x={p.x}
+                  y={p.y}
+                  w={boxW}
+                  h={boxH}
+                  label={`⚠ ${label}`}
+                  bg={failed ? "#3b0d0d" : "#2a1c00"}
+                  stroke={failed ? "#ef4444" : "#7a5a00"}
+                  color={failed ? "#fecaca" : "#fcd34d"}
+                />
+                {failed ? (
+                  <text
+                    x={p.x + boxW / 2}
+                    y={p.y + boxH + 14}
+                    textAnchor="middle"
+                    fontSize="9"
+                    fill="#ef4444"
+                    fontWeight="700"
+                    letterSpacing="0.08em"
+                  >
+                    FAILED
+                  </text>
+                ) : null}
+              </g>
+            );
+          })}
+
+          {/* Consumers */}
+          {CONSUMERS.map((label, i) => {
+            const p = pos(i, yBot);
+            return (
+              <Box
+                key={`con-${label}`}
+                x={p.x}
+                y={p.y}
+                w={boxW}
+                h={boxH}
+                label={label}
+                bg="#111"
+                stroke="#1e1e1e"
+                color="#888"
+              />
+            );
+          })}
+        </svg>
+      </div>
+
+      {/* Failure stats */}
+      <div
+        className="grid grid-cols-1 gap-2 mt-4 sm:grid-cols-3"
+      >
+        <Stat value="23" label="middleware dependencies" />
+        <Stat value="4.2h" label="avg detection time" />
+        <Stat value="$2.8M" label="annual silent-failure cost" valueColor="#ef4444" />
       </div>
     </div>
   );
 }
 
-function Field({
+function Box({
+  x,
+  y,
+  w,
+  h,
   label,
-  children,
+  bg,
+  stroke,
+  color,
 }: {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
   label: string;
-  children: React.ReactNode;
+  bg: string;
+  stroke: string;
+  color: string;
 }) {
   return (
-    <div style={{ marginBottom: 8 }}>
-      <div style={{ fontSize: 11, color: "#000", marginBottom: 2 }}>{label}</div>
-      {children}
-    </div>
+    <g>
+      <rect x={x} y={y} width={w} height={h} rx={6} fill={bg} stroke={stroke} />
+      <text
+        x={x + w / 2}
+        y={y + h / 2 + 4}
+        textAnchor="middle"
+        fontSize="11"
+        fontWeight="500"
+        fill={color}
+      >
+        {label}
+      </text>
+    </g>
   );
 }
 
-function HoldDots() {
+function Stat({
+  value,
+  label,
+  valueColor = "#fff",
+}: {
+  value: string;
+  label: string;
+  valueColor?: string;
+}) {
   return (
-    <div style={{ display: "flex", gap: 6 }}>
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: "50%",
-            background: "#000080",
-            animation: `hold-bounce 1.2s ease-in-out infinite`,
-            animationDelay: `${i * 0.2}s`,
-          }}
-        />
-      ))}
-      <style jsx>{`
-        @keyframes hold-bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-4px); opacity: 0.5; }
-        }
-      `}</style>
+    <div
+      style={{
+        background: "#111",
+        border: "1px solid #1a1a1a",
+        borderRadius: 6,
+        padding: 10,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 18,
+          fontWeight: 600,
+          color: valueColor,
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        {value}
+      </div>
+      <div style={{ fontSize: 10, color: "#555", marginTop: 2 }}>{label}</div>
     </div>
   );
 }
 
-const selectStyle: React.CSSProperties = {
-  fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
-  fontSize: 11,
-  padding: "2px 4px",
-  border: "1px solid",
-  borderColor: "#808080 #fff #fff #808080",
-  background: "#fff",
-  color: "#000",
-};
+// ─── RIGHT: Before scenarios ─────────────────────────────────────────────
+
+interface ScenarioMeta {
+  id: string;
+  title: string;
+  description: string;
+  detail: React.ReactNode;
+}
+
+function BeforeScenarios() {
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const scenarios: ScenarioMeta[] = [
+    {
+      id: "silent",
+      title: "Silent failure — middleware goes dark",
+      description:
+        "A message broker fails between Factory 2 and the Orders system. Orders keep processing against stale data for 4+ hours.",
+      detail: <SilentFailureDetail />,
+    },
+    {
+      id: "burden",
+      title: "3 engineers, 40% of sprint, just keeping lights on",
+      description:
+        "Every system change requires middleware config updates. New integrations take 6–8 weeks. Teams blocked waiting for integration capacity.",
+      detail: <EngineeringBurdenDetail />,
+    },
+    {
+      id: "blind",
+      title: "You don't know what you don't know",
+      description:
+        "14 systems, 23 integration points, zero unified view. Security policies live in each system separately. Compliance is a quarterly audit, not real-time.",
+      detail: <OperationalBlindnessDetail />,
+    },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div
+        style={{
+          fontSize: 10,
+          color: "#444",
+          textTransform: "uppercase",
+          letterSpacing: "0.12em",
+          fontWeight: 600,
+        }}
+      >
+        Before · Failure modes
+      </div>
+      {scenarios.map((s) => {
+        const isOpen = openId === s.id;
+        return (
+          <div
+            key={s.id}
+            style={{
+              background: "#111",
+              border: "1px solid #1e1e1e",
+              borderRadius: 8,
+              padding: 14,
+              cursor: "pointer",
+              transition: "border-color 120ms ease",
+            }}
+            onClick={() => setOpenId(isOpen ? null : s.id)}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.borderColor = "#2a2a2a")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.borderColor = "#1e1e1e")
+            }
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, color: "#fff", fontWeight: 600 }}>
+                  {s.title}
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "#666",
+                    marginTop: 4,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {s.description}
+                </div>
+              </div>
+              <span style={{ color: "#444", fontSize: 12 }}>{isOpen ? "−" : "+"}</span>
+            </div>
+            {isOpen ? (
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #1a1a1a" }}>
+                {s.detail}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SilentFailureDetail() {
+  const steps = [
+    "08:00 — Broker fails silently",
+    "08:00–12:14 — Orders process stale data",
+    "12:14 — Engineer notices anomaly",
+    "12:47 — Root cause found",
+    "847 affected orders · $284K exposure",
+  ];
+  return (
+    <div>
+      <ul style={{ listStyle: "none", padding: 0, margin: 0, fontSize: 11, color: "#888" }}>
+        {steps.map((s, i) => (
+          <li
+            key={s}
+            style={{
+              display: "flex",
+              gap: 8,
+              alignItems: "center",
+              padding: "4px 0",
+              borderTop: i === 0 ? "none" : "1px dashed #1a1a1a",
+            }}
+          >
+            <span
+              style={{
+                width: 4,
+                height: 4,
+                background: i === steps.length - 1 ? "#ef4444" : "#444",
+                borderRadius: "50%",
+                flexShrink: 0,
+              }}
+            />
+            <span>{s}</span>
+          </li>
+        ))}
+      </ul>
+      <div
+        style={{
+          marginTop: 10,
+          fontSize: 24,
+          color: "#ef4444",
+          fontWeight: 700,
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        $284,000
+      </div>
+    </div>
+  );
+}
+
+function EngineeringBurdenDetail() {
+  return (
+    <div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <BarRow label="Integration work" pct={40} color="#ef4444" />
+        <BarRow label="Feature work" pct={60} color="#444" />
+      </div>
+      <div style={{ fontSize: 11, color: "#666", marginTop: 10 }}>
+        Each new system = 4–6 new middleware configs
+      </div>
+    </div>
+  );
+}
+
+function BarRow({
+  label,
+  pct,
+  color,
+}: {
+  label: string;
+  pct: number;
+  color: string;
+}) {
+  return (
+    <div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          fontSize: 11,
+          color: "#888",
+          marginBottom: 3,
+        }}
+      >
+        <span>{label}</span>
+        <span style={{ color: "#fff", fontWeight: 600 }}>{pct}%</span>
+      </div>
+      <div
+        style={{
+          height: 6,
+          background: "#1a1a1a",
+          borderRadius: 3,
+          overflow: "hidden",
+        }}
+      >
+        <div style={{ width: `${pct}%`, height: "100%", background: color }} />
+      </div>
+    </div>
+  );
+}
+
+function OperationalBlindnessDetail() {
+  return (
+    <div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, 1fr)",
+          gap: 4,
+          marginBottom: 8,
+        }}
+      >
+        {Array.from({ length: 14 }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              aspectRatio: "1 / 1",
+              background: "#0a0a0a",
+              border: "1px solid #1a1a1a",
+              borderRadius: 4,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexDirection: "column",
+              fontSize: 9,
+              color: "#666",
+            }}
+          >
+            🔒
+            <span style={{ fontSize: 7, marginTop: 2 }}>local</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 11, color: "#ef4444", lineHeight: 1.4 }}>
+        Security: reactive · Compliance: periodic · Visibility: none
+      </div>
+    </div>
+  );
+}
