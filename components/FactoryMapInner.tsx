@@ -219,7 +219,7 @@ export default function FactoryMapInner({
           fontFamily: 'ui-sans-serif, system-ui, sans-serif',
           fontWeight: '500',
           centerX: am5.p50,
-          dy: -14,
+          dy: -38,
           background: am5.RoundedRectangle.new(root, {
             fill: am5.color(0x000000),
             fillOpacity: 0.85,
