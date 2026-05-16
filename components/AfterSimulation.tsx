@@ -21,13 +21,26 @@ const NODES = [
   "Support",
 ];
 
-export function AfterSimulation() {
+export type AfterLiveStatus =
+  | "idle"
+  | "executing"
+  | "recovering"
+  | "nominal";
+
+interface AfterSimulationProps {
+  // Optional — when supplied, AfterSimulation surfaces a small pill in
+  // the OIIM diagram header that mirrors what's happening on the live
+  // network so the audience sees the "after" model react in real time.
+  liveStatus?: AfterLiveStatus;
+}
+
+export function AfterSimulation({ liveStatus = "idle" }: AfterSimulationProps) {
   return (
     <div
       className="grid grid-cols-1 gap-4 md:grid-cols-[3fr_2fr]"
       style={{ background: "transparent", color: "#e5e7eb" }}
     >
-      <OIIMDiagram />
+      <OIIMDiagram liveStatus={liveStatus} />
       <AfterScenarios />
     </div>
   );
@@ -35,7 +48,7 @@ export function AfterSimulation() {
 
 // ─── LEFT: OIIM diagram ─────────────────────────────────────────────────
 
-function OIIMDiagram() {
+function OIIMDiagram({ liveStatus = "idle" }: { liveStatus?: AfterLiveStatus }) {
   const W = 480;
   const H = 360;
   const cx = W / 2;
@@ -65,6 +78,10 @@ function OIIMDiagram() {
     >
       <div
         style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
           fontSize: 10,
           color: "#444",
           textTransform: "uppercase",
@@ -73,7 +90,8 @@ function OIIMDiagram() {
           marginBottom: 8,
         }}
       >
-        Open Intelligence Interconnect Model
+        <span>Open Intelligence Interconnect Model</span>
+        <LiveStatusPill status={liveStatus} />
       </div>
 
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block" }}>
@@ -182,6 +200,44 @@ function OIIMDiagram() {
         }
       `}</style>
     </div>
+  );
+}
+
+function LiveStatusPill({ status }: { status: AfterLiveStatus }) {
+  if (status === "idle") return null;
+  const cfg = {
+    executing: { label: "Cascade in progress on live network", color: "#ef4444" },
+    recovering: { label: "Recovery in progress on live network", color: "#14b8a6" },
+    nominal: { label: "Recovery complete on live network", color: "#22c55e" },
+  }[status];
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        background: `${cfg.color}1a`,
+        color: cfg.color,
+        padding: "3px 8px",
+        borderRadius: 999,
+        fontSize: 9,
+        fontWeight: 600,
+        letterSpacing: "0.08em",
+        textTransform: "none",
+        border: `1px solid ${cfg.color}55`,
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: "50%",
+          background: cfg.color,
+        }}
+      />
+      {cfg.label}
+    </span>
   );
 }
 

@@ -918,9 +918,15 @@ export default function Page() {
                       ? SCENARIO_OPTIONS.find((o) => o.key === activeScenario)?.short ?? "Cascade Failure"
                       : null
                   }
+                  scenarioKey={activeScenario}
                   scenarioState={scenarioState}
                   affected={SCENARIO_AFFECTED}
                   elapsedMs={elapsedMs}
+                  peakExposure={peakExposure}
+                  delayedShipmentCount={
+                    collapseResult?.delayedShipmentIds.length ?? 0
+                  }
+                  failedNodeCount={failedNodeIds.size}
                   recovering={recovering}
                   recoveryProgressPct={
                     recovering

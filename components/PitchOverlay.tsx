@@ -163,6 +163,9 @@ export function PitchOverlay({
         <div>
           <div
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
               fontSize: 11,
               color: "#444",
               textTransform: "uppercase",
@@ -170,7 +173,9 @@ export function PitchOverlay({
               fontWeight: 500,
             }}
           >
-            Step {step + 1} of {STEPS.length}
+            <span>Step {step + 1} of {STEPS.length}</span>
+            {step === 0 ? <EraTag label="Before" color="#ef4444" /> : null}
+            {step === 1 ? <EraTag label="After" color="#22c55e" /> : null}
           </div>
           <h2
             style={{
@@ -196,7 +201,19 @@ export function PitchOverlay({
           }}
         >
           {step === 0 ? <BeforeSimulation /> : null}
-          {step === 1 ? <AfterSimulation /> : null}
+          {step === 1 ? (
+            <AfterSimulation
+              liveStatus={
+                recoveryComplete
+                  ? "nominal"
+                  : recovering
+                    ? "recovering"
+                    : scenarioActive
+                      ? "executing"
+                      : "idle"
+              }
+            />
+          ) : null}
 
           {step === 2 ? (
             <StepCard>
@@ -433,5 +450,36 @@ function Comparison({
       </div>
       <div style={{ fontSize: 11, color: "#555", marginTop: 4 }}>{label}</div>
     </div>
+  );
+}
+
+function EraTag({ label, color }: { label: string; color: string }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        background: `${color}1a`,
+        color,
+        padding: "2px 8px",
+        borderRadius: 4,
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: "0.14em",
+        border: `1px solid ${color}55`,
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: "50%",
+          background: color,
+        }}
+      />
+      {label}
+    </span>
   );
 }

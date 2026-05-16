@@ -2,17 +2,63 @@
 
 import { useEffect, useState } from "react";
 import type { AffectedNode } from "./BlastRadiusPanel";
+import type { ScenarioKey } from "./TopBar";
 
 interface IncidentPanelProps {
   // null when no incident is active
   scenarioName: string | null;
+  scenarioKey: ScenarioKey | null;
   scenarioState: "idle" | "executing" | "complete" | "recovering" | "nominal" | "confirming";
   affected: AffectedNode[];
   elapsedMs: number;
+  peakExposure: number;
+  delayedShipmentCount: number;
+  failedNodeCount: number;
   recovering: boolean;
   recoveryProgressPct: number; // 0..100
   costAvoided: number | null; // shown after recovery complete
   onInitiateRecovery: () => void;
+}
+
+// Per-scenario metric template. Each scenario surfaces a different lens so
+// the audience sees only the numbers that actually matter to that incident
+// type rather than a generic blob of stats.
+interface MetricSpec {
+  label: string;
+  value: string;
+  tone?: "default" | "warning" | "critical";
+}
+
+function buildMetrics(
+  key: ScenarioKey | null,
+  peakExposure: number,
+  affectedCount: number,
+  failedCount: number,
+  delayed: number,
+): MetricSpec[] {
+  if (key === "warehouse") {
+    return [
+      { label: "Distribution loss", value: fmtMoney(peakExposure), tone: "critical" },
+      { label: "Affected warehouses", value: String(Math.max(1, failedCount)), tone: "warning" },
+      { label: "Shipments delayed", value: String(delayed) },
+      { label: "Routes blocked", value: String(affectedCount) },
+    ];
+  }
+  if (key === "materials") {
+    return [
+      { label: "Production loss", value: fmtMoney(peakExposure), tone: "critical" },
+      { label: "Lines halted", value: String(failedCount), tone: "warning" },
+      { label: "Affected materials nodes", value: String(affectedCount) },
+      { label: "Days of supply", value: failedCount > 0 ? "< 1 day" : "stable", tone: "warning" },
+    ];
+  }
+  // cascade (default downtime template)
+  return [
+    { label: "Cost loss", value: fmtMoney(peakExposure), tone: "critical" },
+    { label: "Service interruptions", value: String(delayed) },
+    { label: "Affected services", value: String(affectedCount), tone: "warning" },
+    { label: "Operational overhead", value: failedCount > 0 ? "elevated" : "normal" },
+  ];
 }
 
 function fmtElapsed(ms: number): string {
@@ -29,9 +75,13 @@ function fmtMoney(n: number): string {
 
 export function IncidentPanel({
   scenarioName,
+  scenarioKey,
   scenarioState,
   affected,
   elapsedMs,
+  peakExposure,
+  delayedShipmentCount,
+  failedNodeCount,
   recovering,
   recoveryProgressPct,
   costAvoided,
@@ -190,6 +240,74 @@ export function IncidentPanel({
               </li>
             ))}
           </ul>
+        </section>
+      ) : null}
+
+      {/* Scenario-typed metrics — only the four numbers that matter for THIS
+          incident category. Hidden once recovery is complete (ROI takes over). */}
+      {!showROIInline ? (
+        <section>
+          <div
+            style={{
+              fontSize: 11,
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+              color: "#555",
+              fontWeight: 500,
+              marginBottom: 8,
+            }}
+          >
+            Impact · {scenarioKey === "warehouse"
+              ? "Distribution"
+              : scenarioKey === "materials"
+                ? "Production"
+                : "Operations"}
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 8,
+            }}
+          >
+            {buildMetrics(
+              scenarioKey,
+              peakExposure,
+              affected.length,
+              failedNodeCount,
+              delayedShipmentCount,
+            ).map((m) => (
+              <div
+                key={m.label}
+                style={{
+                  background: "#111",
+                  border: "1px solid #1a1a1a",
+                  borderRadius: 6,
+                  padding: 8,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color:
+                      m.tone === "critical"
+                        ? "#ef4444"
+                        : m.tone === "warning"
+                          ? "#f59e0b"
+                          : "#ffffff",
+                    fontVariantNumeric: "tabular-nums",
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {m.value}
+                </div>
+                <div style={{ fontSize: 10, color: "#555", marginTop: 3 }}>
+                  {m.label}
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
       ) : null}
 
