@@ -32,7 +32,15 @@ function matchNode(plantId: string, nodes: NodeStatus[]): NodeStatus | undefined
   return nodes.find(n => n.name?.toLowerCase().includes(plantId) || plantId.includes(n.name?.toLowerCase().split(' ')[0] ?? '____'));
 }
 
-export default function FactoryMapInner({ nodes, history: _history }: { nodes: NodeStatus[]; history: Map<string, number[]> }) {
+export default function FactoryMapInner({
+  nodes,
+  history: _history,
+  showLabels = false,
+}: {
+  nodes: NodeStatus[];
+  history: Map<string, number[]>;
+  showLabels?: boolean;
+}) {
   const divRef = useRef<HTMLDivElement>(null);
   const pointSeriesRef = useRef<am5map.MapPointSeries | null>(null);
   const labelSeriesRef = useRef<am5map.MapPointSeries | null>(null);
@@ -197,11 +205,36 @@ export default function FactoryMapInner({ nodes, history: _history }: { nodes: N
       return am5.Bullet.new(root, { sprite: container });
     });
 
-    // No persistent city labels — they overlap on the small inline globe.
-    // Hover tooltips on the point markers carry the same info without
-    // adding visual noise. The label series is kept as an empty series
-    // so the rest of the code (push to .data) doesn't break.
+    // Label series — used only when the parent opted in via showLabels
+    // (e.g. the expanded modal). In the small inline globe we keep this
+    // empty to avoid overlapping city names.
     const labelSeries = chart.series.push(am5map.MapPointSeries.new(root, {}));
+    if (showLabels) {
+      labelSeries.bullets.push((root, _series, dataItem) => {
+        const plantName = (dataItem.dataContext as { plantName?: string } | undefined)?.plantName ?? '';
+        const label = am5.Label.new(root, {
+          text: plantName,
+          fill: am5.color(0xffffff),
+          fontSize: 10,
+          fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+          fontWeight: '500',
+          centerX: am5.p50,
+          dy: -14,
+          background: am5.RoundedRectangle.new(root, {
+            fill: am5.color(0x000000),
+            fillOpacity: 0.85,
+            stroke: am5.color(0x1a1a1a),
+            strokeWidth: 1,
+            cornerRadiusTL: 3, cornerRadiusTR: 3,
+            cornerRadiusBL: 3, cornerRadiusBR: 3,
+          }),
+          paddingTop: 1, paddingBottom: 1,
+          paddingLeft: 5, paddingRight: 5,
+          populateText: true,
+        });
+        return am5.Bullet.new(root, { sprite: label });
+      });
+    }
 
     pointSeriesRef.current = pointSeries;
     labelSeriesRef.current = labelSeries;

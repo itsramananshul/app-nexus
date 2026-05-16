@@ -1088,6 +1088,29 @@ export default function Page() {
               roiData.expeditedShipping
             : null
         }
+        liveNetworkPreview={
+          <NetworkGraph
+            nodes={nodes}
+            statuses={displayStatuses}
+            collapsingNodeIds={collapsingNodeIds}
+            now={now}
+            isLoadingKeys={!keysLoaded}
+            history={history}
+            affectedNodeIds={
+              scenarioState === "executing" ||
+              scenarioState === "complete" ||
+              scenarioState === "recovering"
+                ? new Set(SCENARIO_AFFECTED.map((a) => a.id))
+                : undefined
+            }
+            scenarioActive={
+              scenarioState === "executing" ||
+              scenarioState === "complete" ||
+              scenarioState === "recovering"
+            }
+            failedNodeIds={failedNodeIds}
+          />
+        }
       />
 
       {resetConfirmOpen ? (
@@ -1274,6 +1297,7 @@ export default function Page() {
                   };
                 })}
                 history={history}
+                showLabels
               />
             </div>
           </div>

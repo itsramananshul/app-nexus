@@ -16,23 +16,44 @@ const CONSUMERS = ["Analytics", "Orders", "Support"];
 
 export function BeforeSimulation() {
   const [failedIdx, setFailedIdx] = useState<number | null>(null);
+  const [failureStartedAt, setFailureStartedAt] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
-  // Random middleware fails every 4s, recovers after 2s
+  // Middleware fails for ~8s, then recovers for ~2s. Longer fail window so
+  // the silent-cost ticker has time to make its point.
   useEffect(() => {
     let mounted = true;
-    const tick = () => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const cycle = () => {
       if (!mounted) return;
       const i = Math.floor(Math.random() * MIDDLEWARE.length);
       setFailedIdx(i);
-      setTimeout(() => mounted && setFailedIdx(null), 2000);
+      setFailureStartedAt(Date.now());
+      timeoutId = setTimeout(() => {
+        if (!mounted) return;
+        setFailedIdx(null);
+        setFailureStartedAt(null);
+        timeoutId = setTimeout(cycle, 2000);
+      }, 8000);
     };
-    const id = setInterval(tick, 4000);
-    tick();
+    cycle();
     return () => {
       mounted = false;
-      clearInterval(id);
+      if (timeoutId) clearTimeout(timeoutId);
     };
   }, []);
+
+  // 1Hz tick — drives the silent-failure timer + dollar counter.
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const failureSec =
+    failureStartedAt !== null ? Math.floor((now - failureStartedAt) / 1000) : 0;
+  // Roughly $1.2k per second of silent failure — a single broker outage at
+  // enterprise scale (orders processed against stale inventory).
+  const silentCost = failureSec * 1200;
 
   return (
     <div
@@ -42,7 +63,11 @@ export function BeforeSimulation() {
         color: "#e5e7eb",
       }}
     >
-      <ArchitectureDiagram failedIdx={failedIdx} />
+      <ArchitectureDiagram
+        failedIdx={failedIdx}
+        failureSec={failureSec}
+        silentCost={silentCost}
+      />
       <BeforeScenarios />
     </div>
   );
@@ -50,7 +75,15 @@ export function BeforeSimulation() {
 
 // ─── LEFT: Architecture diagram ──────────────────────────────────────────
 
-function ArchitectureDiagram({ failedIdx }: { failedIdx: number | null }) {
+function ArchitectureDiagram({
+  failedIdx,
+  failureSec,
+  silentCost,
+}: {
+  failedIdx: number | null;
+  failureSec: number;
+  silentCost: number;
+}) {
   const W = 480;
   const H = 320;
   const colW = W / 3;
@@ -129,21 +162,24 @@ function ArchitectureDiagram({ failedIdx }: { failedIdx: number | null }) {
             }),
           )}
 
-          {/* Sources */}
+          {/* Sources — keep pulsing green dot during failure to dramatise
+              the silent-failure point: source systems THINK they're healthy. */}
           {SOURCES.map((label, i) => {
             const p = pos(i, yTop);
             return (
-              <Box
-                key={`src-${label}`}
-                x={p.x}
-                y={p.y}
-                w={boxW}
-                h={boxH}
-                label={label}
-                bg="#111"
-                stroke="#1e1e1e"
-                color="#888"
-              />
+              <g key={`src-${label}`}>
+                <Box
+                  x={p.x}
+                  y={p.y}
+                  w={boxW}
+                  h={boxH}
+                  label={label}
+                  bg="#111"
+                  stroke="#1e1e1e"
+                  color="#888"
+                />
+                <HealthDot cx={p.x + 8} cy={p.y + 8} />
+              </g>
             );
           })}
 
@@ -194,20 +230,66 @@ function ArchitectureDiagram({ failedIdx }: { failedIdx: number | null }) {
           {CONSUMERS.map((label, i) => {
             const p = pos(i, yBot);
             return (
-              <Box
-                key={`con-${label}`}
-                x={p.x}
-                y={p.y}
-                w={boxW}
-                h={boxH}
-                label={label}
-                bg="#111"
-                stroke="#1e1e1e"
-                color="#888"
-              />
+              <g key={`con-${label}`}>
+                <Box
+                  x={p.x}
+                  y={p.y}
+                  w={boxW}
+                  h={boxH}
+                  label={label}
+                  bg="#111"
+                  stroke="#1e1e1e"
+                  color="#888"
+                />
+                <HealthDot cx={p.x + 8} cy={p.y + 8} />
+              </g>
             );
           })}
         </svg>
+
+        {/* Silent-failure HUD — shows while a middleware box is down. The
+            cost ticks up while the surrounding systems keep blinking green:
+            the audience sees value bleeding without any operator alarm. */}
+        {failedIdx !== null ? (
+          <div
+            style={{
+              position: "absolute",
+              left: 12,
+              right: 12,
+              bottom: 8,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+              padding: "8px 12px",
+              background: "rgba(239,68,68,0.08)",
+              border: "1px solid rgba(239,68,68,0.4)",
+              borderRadius: 8,
+              fontSize: 11,
+            }}
+          >
+            <div style={{ color: "#fca5a5", fontWeight: 600, letterSpacing: "0.04em" }}>
+              <span style={{ marginRight: 6 }}>⚠</span>
+              Silent failure · all systems still report healthy
+            </div>
+            <div style={{ display: "flex", gap: 14, alignItems: "baseline" }}>
+              <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', color: "#fff", fontVariantNumeric: "tabular-nums" }}>
+                {String(Math.floor(failureSec / 60)).padStart(2, "0")}:
+                {String(failureSec % 60).padStart(2, "0")}
+              </span>
+              <span
+                style={{
+                  color: "#ef4444",
+                  fontWeight: 700,
+                  fontVariantNumeric: "tabular-nums",
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                }}
+              >
+                ${silentCost.toLocaleString()}
+              </span>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {/* Failure stats */}
@@ -219,6 +301,23 @@ function ArchitectureDiagram({ failedIdx }: { failedIdx: number | null }) {
         <Stat value="$2.8M" label="annual silent-failure cost" valueColor="#ef4444" />
       </div>
     </div>
+  );
+}
+
+// Tiny green pulse on every source/consumer box. Independent of middleware
+// state — that's the whole point: surrounding systems THINK they're healthy.
+function HealthDot({ cx, cy }: { cx: number; cy: number }) {
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={3} fill="#22c55e">
+        <animate
+          attributeName="opacity"
+          values="1;0.35;1"
+          dur="1.6s"
+          repeatCount="indefinite"
+        />
+      </circle>
+    </g>
   );
 }
 

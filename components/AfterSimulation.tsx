@@ -28,20 +28,125 @@ export type AfterLiveStatus =
   | "nominal";
 
 interface AfterSimulationProps {
-  // Optional — when supplied, AfterSimulation surfaces a small pill in
-  // the OIIM diagram header that mirrors what's happening on the live
-  // network so the audience sees the "after" model react in real time.
   liveStatus?: AfterLiveStatus;
+  // When supplied, the right column renders the actual live network graph
+  // (or any preview React node) — the audience sees OIIM concept on the
+  // left and the real running network on the right, side by side.
+  livePreview?: React.ReactNode;
 }
 
-export function AfterSimulation({ liveStatus = "idle" }: AfterSimulationProps) {
+export function AfterSimulation({
+  liveStatus = "idle",
+  livePreview,
+}: AfterSimulationProps) {
   return (
     <div
       className="grid grid-cols-1 gap-4 md:grid-cols-[3fr_2fr]"
       style={{ background: "transparent", color: "#e5e7eb" }}
     >
-      <OIIMDiagram liveStatus={liveStatus} />
-      <AfterScenarios />
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <OIIMDiagram liveStatus={liveStatus} />
+        {livePreview ? <AfterValueProps /> : null}
+      </div>
+      {livePreview ? (
+        <div
+          style={{
+            background: "#000",
+            border: "1px solid #1a1a1a",
+            borderRadius: 10,
+            overflow: "hidden",
+            position: "relative",
+            minHeight: 360,
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: 8,
+              left: 12,
+              fontSize: 9,
+              color: "#444",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              fontWeight: 600,
+              zIndex: 5,
+              pointerEvents: "none",
+            }}
+          >
+            Live network · OpenPrem
+          </div>
+          <div style={{ position: "absolute", inset: 0 }}>{livePreview}</div>
+        </div>
+      ) : (
+        <AfterScenarios />
+      )}
+    </div>
+  );
+}
+
+// Compact value-prop list shown beneath the OIIM diagram when the live
+// network is being displayed on the right (replaces the long scenario list).
+function AfterValueProps() {
+  const props = [
+    "Peer-to-peer · no broker in the critical path",
+    "One universal data format · no per-system mapping",
+    "Legacy systems wrapped with adapters · migrate at your pace",
+    "Programs reusable across departments via a new address",
+    "Nested authority · corporate policies inherit into every team",
+    "Security is structural · every link explicit and audited",
+    "AI + human share the same control plane",
+  ];
+  return (
+    <div
+      style={{
+        background: "#0a0a0a",
+        border: "1px solid #1a1a1a",
+        borderRadius: 10,
+        padding: 12,
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 10,
+          color: "#444",
+          textTransform: "uppercase",
+          letterSpacing: "0.12em",
+          fontWeight: 600,
+          marginBottom: 8,
+        }}
+      >
+        What this unlocks
+      </div>
+      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+        {props.map((p, i) => (
+          <li
+            key={i}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 8,
+              fontSize: 12,
+              color: "#cccccc",
+              lineHeight: 1.45,
+            }}
+          >
+            <span
+              style={{
+                width: 4,
+                height: 4,
+                background: "#22c55e",
+                borderRadius: "50%",
+                marginTop: 7,
+                flexShrink: 0,
+              }}
+            />
+            <span>{p}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

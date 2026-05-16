@@ -9,6 +9,17 @@ export type FactoryMapNode = {
 
 const FactoryMapInner = dynamic(() => import('./FactoryMapInner'), { ssr: false });
 
-export default function FactoryMap({ nodes, history }: { nodes: FactoryMapNode[]; history: Map<string, number[]> }) {
-  return <FactoryMapInner nodes={nodes} history={history} />;
+export default function FactoryMap({
+  nodes,
+  history,
+  showLabels = false,
+}: {
+  nodes: FactoryMapNode[];
+  history: Map<string, number[]>;
+  // When true, the globe renders persistent city labels (used in the
+  // expanded modal). False (default) keeps the small inline globe clean —
+  // tooltips on hover only.
+  showLabels?: boolean;
+}) {
+  return <FactoryMapInner nodes={nodes} history={history} showLabels={showLabels} />;
 }

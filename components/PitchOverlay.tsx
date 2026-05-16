@@ -14,6 +14,9 @@ interface PitchOverlayProps {
   recovering: boolean;
   recoveryComplete: boolean;
   costAvoided: number | null;
+  // The actual live NetworkGraph (or any preview) supplied by page.tsx
+  // so the After step can show OIIM concept beside the real running network.
+  liveNetworkPreview?: React.ReactNode;
 }
 
 const STEPS = [
@@ -65,6 +68,7 @@ export function PitchOverlay({
   recovering,
   recoveryComplete,
   costAvoided,
+  liveNetworkPreview,
 }: PitchOverlayProps) {
   const [step, setStep] = useState(0);
 
@@ -102,17 +106,20 @@ export function PitchOverlay({
     >
       <div
         style={{
-          width: step === 0 ? "min(1100px, 96vw)" : "min(720px, 100%)",
-          maxHeight: "calc(100vh - 40px)",
-          overflowY: step === 0 ? "hidden" : "auto",
+          // Locked dimensions across every step — sized for the heaviest
+          // slides (Before / After diagrams). Audience never sees a
+          // layout shift as the deck advances.
+          width: "min(1100px, 96vw)",
+          height: "min(720px, 88vh)",
           background: "#0a0a0a",
           border: "1px solid #1a1a1a",
           borderRadius: 16,
           boxShadow: "0 30px 80px rgba(0,0,0,0.7)",
-          padding: step === 0 ? 16 : 24,
+          padding: 18,
           display: "flex",
           flexDirection: "column",
-          gap: step === 0 ? 10 : 16,
+          gap: 12,
+          overflow: "hidden",
         }}
       >
         {/* Header: step dots + close */}
@@ -193,11 +200,14 @@ export function PitchOverlay({
           </p>
         </div>
 
-        {/* Step content */}
+        {/* Step content — every step shares the same body area, scrolls
+            internally if its content exceeds the locked card height. */}
         <div
           style={{
-            minHeight: step === 0 || step === 1 ? 0 : 320,
-            flex: step === 0 || step === 1 ? 1 : undefined,
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            paddingRight: 2,
           }}
         >
           {step === 0 ? <BeforeSimulation /> : null}
@@ -212,6 +222,7 @@ export function PitchOverlay({
                       ? "executing"
                       : "idle"
               }
+              livePreview={liveNetworkPreview}
             />
           ) : null}
 
