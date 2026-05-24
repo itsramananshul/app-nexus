@@ -308,10 +308,10 @@ export default function ApplicationsPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <Workflow size={18} color="#4f6ef7" />
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#dde1f5" }}>Applications</h1>
+            <Workflow size={18} color="#0070f3" />
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#ffffff" }}>Applications</h1>
           </div>
-          <p style={{ margin: 0, fontSize: 12, color: "#3a4570" }}>SOL workflows and active sessions</p>
+          <p style={{ margin: 0, fontSize: 12, color: "#444444" }}>SOL workflows and active sessions</p>
         </div>
         <button onClick={() => void refresh(controllers)} disabled={loading} style={btnSecondaryStyle}>
           <RefreshCw size={13} style={{ animation: loading ? "spin 1s linear infinite" : "none" }} />
@@ -320,7 +320,7 @@ export default function ApplicationsPage() {
       </div>
 
       {/* Build & Run panel */}
-      <div style={{ background: "#0d0f1a", border: "1px solid #1e2240", borderRadius: 10, marginBottom: 16, overflow: "hidden" }}>
+      <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 10, marginBottom: 16, overflow: "hidden" }}>
         <button
           onClick={() => setBuilderOpen((p) => !p)}
           style={{
@@ -329,16 +329,16 @@ export default function ApplicationsPage() {
             alignItems: "center",
             gap: 8,
             padding: "12px 16px",
-            background: "#0a0c18",
+            background: "#000000",
             border: "none",
-            borderBottom: builderOpen ? "1px solid #1a1e38" : "none",
-            color: "#dde1f5",
+            borderBottom: builderOpen ? "1px solid #1a1a1a" : "none",
+            color: "#ffffff",
             cursor: "pointer",
             textAlign: "left",
           }}
         >
-          {builderOpen ? <ChevronDown size={14} color="#4f6ef7" /> : <ChevronRight size={14} color="#4f6ef7" />}
-          <span style={{ fontWeight: 700, fontSize: 13, color: "#8090c0", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          {builderOpen ? <ChevronDown size={14} color="#0070f3" /> : <ChevronRight size={14} color="#0070f3" />}
+          <span style={{ fontWeight: 700, fontSize: 13, color: "#888888", textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Build &amp; Run
           </span>
         </button>
@@ -422,20 +422,20 @@ export default function ApplicationsPage() {
 
       {/* Saved workflows */}
       {saved.length > 0 && (
-        <div style={{ background: "#0d0f1a", border: "1px solid #1e2240", borderRadius: 10, marginBottom: 16, overflow: "hidden" }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid #1a1e38" }}>
-            <span style={{ fontWeight: 700, fontSize: 13, color: "#8090c0", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 10, marginBottom: 16, overflow: "hidden" }}>
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid #1a1a1a" }}>
+            <span style={{ fontWeight: 700, fontSize: 13, color: "#888888", textTransform: "uppercase", letterSpacing: "0.06em" }}>
               Saved Workflows ({saved.length})
             </span>
           </div>
           {saved.map((s) => (
-            <div key={s.id} style={{ ...rowStyle, borderBottom: "1px solid #0f1120" }}>
+            <div key={s.id} style={{ ...rowStyle, borderBottom: "1px solid #111111" }}>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontWeight: 700, color: "#dde1f5", fontSize: 13 }}>{s.name}</div>
+                <div style={{ fontWeight: 700, color: "#ffffff", fontSize: 13 }}>{s.name}</div>
                 {s.description && (
-                  <div style={{ fontSize: 11, color: "#4a5080", marginTop: 2 }}>{s.description}</div>
+                  <div style={{ fontSize: 11, color: "#666666", marginTop: 2 }}>{s.description}</div>
                 )}
-                <div style={{ fontSize: 10, color: "#3a4570", marginTop: 4 }}>
+                <div style={{ fontSize: 10, color: "#444444", marginTop: 4 }}>
                   Saved {msAgo(new Date(s.savedAt).getTime())}
                 </div>
               </div>
@@ -457,9 +457,9 @@ export default function ApplicationsPage() {
 
       {/* Router sessions */}
       {sessions.length > 0 && (
-        <div style={{ background: "#0d0f1a", border: "1px solid #1e2240", borderRadius: 10, marginBottom: 16, overflow: "hidden" }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid #1a1e38" }}>
-            <span style={{ fontWeight: 700, fontSize: 13, color: "#8090c0", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 10, marginBottom: 16, overflow: "hidden" }}>
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid #1a1a1a" }}>
+            <span style={{ fontWeight: 700, fontSize: 13, color: "#888888", textTransform: "uppercase", letterSpacing: "0.06em" }}>
               Router Sessions ({sessions.length})
             </span>
           </div>
@@ -467,21 +467,21 @@ export default function ApplicationsPage() {
             <div
               key={s.workflow_id}
               onClick={() => setTraceId(s.workflow_id)}
-              style={{ ...rowStyle, borderBottom: "1px solid #0f1120", cursor: "pointer" }}
+              style={{ ...rowStyle, borderBottom: "1px solid #111111", cursor: "pointer" }}
             >
               <div>
-                <div style={{ fontWeight: 700, color: "#dde1f5", fontSize: 13 }}>{s.workflow_name}</div>
-                <div style={{ fontSize: 10, fontFamily: "monospace", color: "#3a4570", marginTop: 2 }}>
+                <div style={{ fontWeight: 700, color: "#ffffff", fontSize: 13 }}>{s.workflow_name}</div>
+                <div style={{ fontSize: 10, fontFamily: "monospace", color: "#444444", marginTop: 2 }}>
                   {s.workflow_id}
                 </div>
-                <div style={{ fontSize: 11, color: "#4a5080", marginTop: 4 }}>
+                <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>
                   Route: {s.route.length > 0 ? s.route.join(" → ") : s.source_peer}
                   {s.capabilities_used.length > 0 && ` · ${s.capabilities_used.length} caps`}
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
                 <StatusBadge status={s.status} />
-                <div style={{ fontSize: 10, color: "#3a4570", marginTop: 4 }}>{msAgo(s.started_at)}</div>
+                <div style={{ fontSize: 10, color: "#444444", marginTop: 4 }}>{msAgo(s.started_at)}</div>
               </div>
             </div>
           ))}
@@ -491,9 +491,9 @@ export default function ApplicationsPage() {
       {/* Per-controller workflows */}
       {rows.map(({ controller, workflows }) =>
         workflows.length > 0 && (
-          <div key={controller.id} style={{ background: "#0d0f1a", border: "1px solid #1e2240", borderRadius: 10, marginBottom: 12, overflow: "hidden" }}>
-            <div style={{ padding: "12px 16px", borderBottom: "1px solid #1a1e38" }}>
-              <span style={{ fontWeight: 700, fontSize: 13, color: "#8090c0", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <div key={controller.id} style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 10, marginBottom: 12, overflow: "hidden" }}>
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid #1a1a1a" }}>
+              <span style={{ fontWeight: 700, fontSize: 13, color: "#888888", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                 {controller.name} — {workflows.length} workflow{workflows.length !== 1 ? "s" : ""}
               </span>
             </div>
@@ -501,13 +501,13 @@ export default function ApplicationsPage() {
               const rowKey = `${controller.id}:${wf.id}`;
               const msg = solflowMsg[rowKey];
               return (
-                <div key={wf.id} style={{ padding: "12px 16px", borderBottom: "1px solid #0f1120" }}>
+                <div key={wf.id} style={{ padding: "12px 16px", borderBottom: "1px solid #111111" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
-                      <div style={{ fontWeight: 700, color: "#dde1f5", fontSize: 13 }}>{wf.workflow_name}</div>
-                      <div style={{ fontSize: 10, fontFamily: "monospace", color: "#3a4570", marginTop: 2 }}>{wf.id}</div>
+                      <div style={{ fontWeight: 700, color: "#ffffff", fontSize: 13 }}>{wf.workflow_name}</div>
+                      <div style={{ fontSize: 10, fontFamily: "monospace", color: "#444444", marginTop: 2 }}>{wf.id}</div>
                       {wf.progress && (
-                        <div style={{ fontSize: 11, color: "#4a5080", marginTop: 3 }}>Step {wf.progress}</div>
+                        <div style={{ fontSize: 11, color: "#666666", marginTop: 3 }}>Step {wf.progress}</div>
                       )}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -544,7 +544,7 @@ export default function ApplicationsPage() {
       )}
 
       {rows.every((r) => r.workflows.length === 0) && sessions.length === 0 && !loading && (
-        <div style={{ textAlign: "center", color: "#2e3560", fontSize: 13, padding: "40px 0" }}>
+        <div style={{ textAlign: "center", color: "#444444", fontSize: 13, padding: "40px 0" }}>
           No active workflows or sessions
         </div>
       )}
@@ -568,7 +568,7 @@ function ValidationPanel({ v }: { v: ValidationView }) {
   return (
     <div
       style={{
-        background: "#080a12",
+        background: "#000000",
         border: `1px solid ${v.valid ? "#1d4030" : "#3a1010"}`,
         borderRadius: 8,
         padding: 12,
@@ -588,7 +588,7 @@ function ValidationPanel({ v }: { v: ValidationView }) {
       </div>
       {v.capabilities.length > 0 && (
         <>
-          <div style={{ fontSize: 11, color: "#5a6080", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <div style={{ fontSize: 11, color: "#666666", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Required capabilities ({v.capabilities.length})
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -649,8 +649,8 @@ function SessionTrace({
     >
       <div
         style={{
-          background: "#0d0f1a",
-          border: "1px solid #1e2240",
+          background: "#0a0a0a",
+          border: "1px solid #1a1a1a",
           borderRadius: 12,
           width: 640,
           maxWidth: "92vw",
@@ -663,15 +663,15 @@ function SessionTrace({
             justifyContent: "space-between",
             alignItems: "center",
             padding: "14px 18px",
-            borderBottom: "1px solid #1a1e38",
-            background: "#0a0c18",
+            borderBottom: "1px solid #1a1a1a",
+            background: "#000000",
           }}
         >
           <div>
-            <div style={{ fontWeight: 700, fontSize: 14, color: "#dde1f5" }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "#ffffff" }}>
               {trace?.workflow_name ?? "Session"}
             </div>
-            <div style={{ fontSize: 10, fontFamily: "monospace", color: "#3a4570", marginTop: 2 }}>
+            <div style={{ fontSize: 10, fontFamily: "monospace", color: "#444444", marginTop: 2 }}>
               {id}
             </div>
           </div>
@@ -679,10 +679,10 @@ function SessionTrace({
             onClick={onClose}
             style={{
               background: "none",
-              border: "1px solid #1e2240",
+              border: "1px solid #1a1a1a",
               cursor: "pointer",
               padding: "5px 7px",
-              color: "#4a5080",
+              color: "#666666",
               borderRadius: 5,
               display: "flex",
               alignItems: "center",
@@ -694,7 +694,7 @@ function SessionTrace({
 
         <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
           {!trace && (
-            <div style={{ fontSize: 13, color: "#3a4570" }}>Loading session…</div>
+            <div style={{ fontSize: 13, color: "#444444" }}>Loading session…</div>
           )}
           {trace && (
             <>
@@ -703,33 +703,33 @@ function SessionTrace({
                   <StatusBadge status={trace.status} />
                 </Meta>
                 <Meta label="Source peer">
-                  <span style={{ fontFamily: "monospace", color: "#dde1f5", fontSize: 12 }}>{trace.source_peer}</span>
+                  <span style={{ fontFamily: "monospace", color: "#ffffff", fontSize: 12 }}>{trace.source_peer}</span>
                 </Meta>
                 <Meta label="Started">
-                  <span style={{ color: "#dde1f5", fontSize: 12 }}>{new Date(tsToMs(trace.started_at)).toLocaleTimeString()}</span>
+                  <span style={{ color: "#ffffff", fontSize: 12 }}>{new Date(tsToMs(trace.started_at)).toLocaleTimeString()}</span>
                 </Meta>
                 <Meta label="Elapsed">
-                  <span style={{ color: "#dde1f5", fontSize: 12, fontFamily: "monospace" }}>{elapsed(trace.started_at)}</span>
+                  <span style={{ color: "#ffffff", fontSize: 12, fontFamily: "monospace" }}>{elapsed(trace.started_at)}</span>
                 </Meta>
               </div>
 
               <div>
-                <div style={{ fontSize: 11, color: "#5a6080", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+                <div style={{ fontSize: 11, color: "#666666", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
                   Route ({trace.route.length} hops)
                 </div>
                 {trace.route.length === 0 ? (
-                  <div style={{ fontSize: 12, color: "#2e3560" }}>No route data yet</div>
+                  <div style={{ fontSize: 12, color: "#444444" }}>No route data yet</div>
                 ) : (
                   <RouteBreadcrumb route={trace.route} status={trace.status} />
                 )}
               </div>
 
               <div>
-                <div style={{ fontSize: 11, color: "#5a6080", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+                <div style={{ fontSize: 11, color: "#666666", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
                   Capabilities used ({trace.capabilities_used.length})
                 </div>
                 {trace.capabilities_used.length === 0 ? (
-                  <div style={{ fontSize: 12, color: "#2e3560" }}>None yet</div>
+                  <div style={{ fontSize: 12, color: "#444444" }}>None yet</div>
                 ) : (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {trace.capabilities_used.map((c, i) => (
@@ -740,9 +740,9 @@ function SessionTrace({
                           fontSize: 11,
                           padding: "3px 8px",
                           borderRadius: 4,
-                          background: "#131830",
-                          color: "#7b8fff",
-                          border: "1px solid #252d58",
+                          background: "#111111",
+                          color: "#ffffff",
+                          border: "1px solid #2a2a2a",
                         }}
                       >
                         {c}
@@ -754,16 +754,16 @@ function SessionTrace({
 
               {trace.result != null && (
                 <div>
-                  <div style={{ fontSize: 11, color: "#5a6080", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                  <div style={{ fontSize: 11, color: "#666666", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
                     Result
                   </div>
                   <pre
                     style={{
-                      background: "#080a12",
-                      border: "1px solid #1a1e38",
+                      background: "#000000",
+                      border: "1px solid #1a1a1a",
                       borderRadius: 6,
                       padding: "10px 12px",
-                      color: "#dde1f5",
+                      color: "#ffffff",
                       fontSize: 12,
                       whiteSpace: "pre-wrap",
                       wordBreak: "break-all",
@@ -777,7 +777,7 @@ function SessionTrace({
                 </div>
               )}
 
-              <div style={{ fontSize: 10, color: "#2e3560" }}>
+              <div style={{ fontSize: 10, color: "#444444" }}>
                 {trace.status === "running" ? `Polling every tick · updates: ${tick}` : "Polling stopped"}
               </div>
             </>
@@ -803,9 +803,9 @@ function RouteBreadcrumb({ route, status }: { route: string[]; status: string })
                 fontFamily: "monospace",
                 padding: "4px 9px",
                 borderRadius: 5,
-                background: active ? "#1a1f40" : "#0f1120",
-                color: active ? "#7b8fff" : "#5a6aaa",
-                border: `1px solid ${active ? "#4f6ef7" : "#1a1e38"}`,
+                background: active ? "#1a1f40" : "#111111",
+                color: active ? "#ffffff" : "#888888",
+                border: `1px solid ${active ? "#0070f3" : "#1a1a1a"}`,
                 fontWeight: active ? 700 : 500,
                 boxShadow: active ? "0 0 8px rgba(79,110,247,0.4)" : "none",
               }}
@@ -813,7 +813,7 @@ function RouteBreadcrumb({ route, status }: { route: string[]; status: string })
               {hop}
             </span>
             {i < route.length - 1 && (
-              <span style={{ color: "#3a4570", fontSize: 12 }}>→</span>
+              <span style={{ color: "#444444", fontSize: 12 }}>→</span>
             )}
           </span>
         );
@@ -825,7 +825,7 @@ function RouteBreadcrumb({ route, status }: { route: string[]; status: string })
 function Meta({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div style={{ fontSize: 10, color: "#5a6080", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>
+      <div style={{ fontSize: 10, color: "#666666", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>
         {label}
       </div>
       <div>{children}</div>
@@ -846,11 +846,11 @@ const rowStyle: React.CSSProperties = {
 };
 
 const inputStyle: React.CSSProperties = {
-  background: "#080a12",
-  border: "1px solid #1e2240",
+  background: "#000000",
+  border: "1px solid #1a1a1a",
   borderRadius: 6,
   padding: "8px 12px",
-  color: "#dde1f5",
+  color: "#ffffff",
   fontSize: 12,
   fontFamily: "monospace",
   outline: "none",
@@ -860,11 +860,11 @@ const btnSecondaryStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 6,
-  background: "#0d0f1a",
-  border: "1px solid #1e2240",
+  background: "#0a0a0a",
+  border: "1px solid #1a1a1a",
   borderRadius: 7,
   padding: "8px 14px",
-  color: "#8090c0",
+  color: "#888888",
   fontSize: 13,
   fontWeight: 600,
   cursor: "pointer",
@@ -874,7 +874,7 @@ const btnPrimaryStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 6,
-  background: "#4f6ef7",
+  background: "#0070f3",
   border: "none",
   borderRadius: 6,
   padding: "8px 14px",
@@ -900,29 +900,29 @@ const solflowBtnStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 4,
-  background: "#131830",
-  border: "1px solid #252d58",
+  background: "#111111",
+  border: "1px solid #2a2a2a",
   borderRadius: 5,
   padding: "5px 9px",
-  color: "#7b8fff",
+  color: "#ffffff",
   fontSize: 11,
   fontWeight: 600,
   cursor: "pointer",
 };
 
 const smallBtnStyle: React.CSSProperties = {
-  background: "#0f1120",
-  border: "1px solid #1e2240",
+  background: "#111111",
+  border: "1px solid #1a1a1a",
   borderRadius: 5,
   padding: "5px 9px",
-  color: "#8090c0",
+  color: "#888888",
   fontSize: 11,
   fontWeight: 600,
   cursor: "pointer",
 };
 
 const smallPrimaryBtnStyle: React.CSSProperties = {
-  background: "#4f6ef7",
+  background: "#0070f3",
   border: "none",
   borderRadius: 5,
   padding: "5px 9px",

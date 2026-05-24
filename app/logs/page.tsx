@@ -12,10 +12,10 @@ interface LedgerRow {
 }
 
 const LEVEL_COLOR: Record<string, string> = {
-  INFO:  "#4f6ef7",
+  INFO:  "#0070f3",
   WARN:  "#f59e0b",
   ERROR: "#ef4444",
-  DEBUG: "#3a4570",
+  DEBUG: "#444444",
 };
 
 export default function LogsPage() {
@@ -68,10 +68,10 @@ export default function LogsPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <ScrollText size={18} color="#4f6ef7" />
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#dde1f5" }}>Logs</h1>
+            <ScrollText size={18} color="#0070f3" />
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#ffffff" }}>Logs</h1>
           </div>
-          <p style={{ margin: 0, fontSize: 12, color: "#3a4570" }}>
+          <p style={{ margin: 0, fontSize: 12, color: "#444444" }}>
             Ledger entries across all controllers
           </p>
         </div>
@@ -84,7 +84,7 @@ export default function LogsPage() {
       {/* Toolbar */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
         <div style={{ position: "relative", flex: 1 }}>
-          <Search size={13} color="#3a4570" style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)" }} />
+          <Search size={13} color="#444444" style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)" }} />
           <input
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -105,21 +105,21 @@ export default function LogsPage() {
       </div>
 
       {/* Count */}
-      <div style={{ fontSize: 11, color: "#3a4570", marginBottom: 10 }}>
+      <div style={{ fontSize: 11, color: "#444444", marginBottom: 10 }}>
         {filtered.length} entr{filtered.length !== 1 ? "ies" : "y"}
       </div>
 
       {/* Table */}
-      <div style={{ background: "#0d0f1a", border: "1px solid #1e2240", borderRadius: 10, overflow: "hidden" }}>
+      <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 10, overflow: "hidden" }}>
         {/* Table header */}
-        <div style={{ display: "grid", gridTemplateColumns: "60px 140px 1fr 1fr", padding: "10px 16px", borderBottom: "1px solid #1a1e38", background: "#0a0c18" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "60px 140px 1fr 1fr", padding: "10px 16px", borderBottom: "1px solid #1a1a1a", background: "#000000" }}>
           {["Seq", "Controller", "Variable", "Value"].map((h) => (
-            <span key={h} style={{ fontSize: 10, fontWeight: 700, color: "#3a4570", textTransform: "uppercase", letterSpacing: "0.07em" }}>{h}</span>
+            <span key={h} style={{ fontSize: 10, fontWeight: 700, color: "#444444", textTransform: "uppercase", letterSpacing: "0.07em" }}>{h}</span>
           ))}
         </div>
 
         {filtered.length === 0 && !loading && (
-          <div style={{ textAlign: "center", padding: "40px 0", color: "#2e3560", fontSize: 13 }}>
+          <div style={{ textAlign: "center", padding: "40px 0", color: "#444444", fontSize: 13 }}>
             No ledger entries found
           </div>
         )}
@@ -131,18 +131,18 @@ export default function LogsPage() {
               display: "grid",
               gridTemplateColumns: "60px 140px 1fr 1fr",
               padding: "9px 16px",
-              borderBottom: i < filtered.length - 1 ? "1px solid #0f1120" : "none",
+              borderBottom: i < filtered.length - 1 ? "1px solid #111111" : "none",
               fontSize: 12,
               alignItems: "start",
             }}
           >
-            <span style={{ color: "#3a4570", fontFamily: "monospace" }}>{e.seq}</span>
-            <span style={{ color: "#5a6aaa", fontWeight: 500 }}>{e.controllerName}</span>
-            <span style={{ fontFamily: "monospace", color: "#7b8fff" }}>{e.variable}</span>
+            <span style={{ color: "#444444", fontFamily: "monospace" }}>{e.seq}</span>
+            <span style={{ color: "#888888", fontWeight: 500 }}>{e.controllerName}</span>
+            <span style={{ fontFamily: "monospace", color: "#ffffff" }}>{e.variable}</span>
             <span
               style={{
                 fontFamily: "monospace",
-                color: "#dde1f5",
+                color: "#ffffff",
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-all",
                 maxHeight: 60,
@@ -155,7 +155,7 @@ export default function LogsPage() {
         ))}
 
         {filtered.length > 500 && (
-          <div style={{ textAlign: "center", padding: "10px", color: "#3a4570", fontSize: 11 }}>
+          <div style={{ textAlign: "center", padding: "10px", color: "#444444", fontSize: 11 }}>
             Showing first 500 of {filtered.length} entries
           </div>
         )}
@@ -167,11 +167,11 @@ export default function LogsPage() {
 }
 
 const inputStyle: React.CSSProperties = {
-  background: "#0d0f1a",
-  border: "1px solid #1e2240",
+  background: "#0a0a0a",
+  border: "1px solid #1a1a1a",
   borderRadius: 6,
   padding: "8px 12px",
-  color: "#dde1f5",
+  color: "#ffffff",
   fontSize: 12,
   fontFamily: "monospace",
   outline: "none",
@@ -181,11 +181,11 @@ const btnSecondaryStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 6,
-  background: "#0d0f1a",
-  border: "1px solid #1e2240",
+  background: "#0a0a0a",
+  border: "1px solid #1a1a1a",
   borderRadius: 7,
   padding: "8px 14px",
-  color: "#8090c0",
+  color: "#888888",
   fontSize: 13,
   fontWeight: 600,
   cursor: "pointer",

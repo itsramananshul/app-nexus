@@ -168,10 +168,10 @@ export default function CapabilitiesPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <Zap size={18} color="#4f6ef7" />
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#dde1f5" }}>Capabilities</h1>
+            <Zap size={18} color="#0070f3" />
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#ffffff" }}>Capabilities</h1>
           </div>
-          <p style={{ margin: 0, fontSize: 12, color: "#3a4570" }}>
+          <p style={{ margin: 0, fontSize: 12, color: "#444444" }}>
             {rows.length} capabilit{rows.length === 1 ? "y" : "ies"} discovered across {data.length} node{data.length === 1 ? "" : "s"}
           </p>
         </div>
@@ -183,7 +183,7 @@ export default function CapabilitiesPage() {
 
       {/* Search */}
       <div style={{ marginBottom: 14, position: "relative" }}>
-        <Search size={13} color="#3a4570" style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)" }} />
+        <Search size={13} color="#444444" style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)" }} />
         <input
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
@@ -200,20 +200,20 @@ export default function CapabilitiesPage() {
       )}
 
       {/* Table */}
-      <div style={{ background: "#0d0f1a", border: "1px solid #1e2240", borderRadius: 10, overflow: "hidden" }}>
+      <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 10, overflow: "hidden" }}>
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "1.5fr 1.4fr 1.4fr 100px",
             padding: "10px 16px",
-            borderBottom: "1px solid #1a1e38",
-            background: "#0a0c18",
+            borderBottom: "1px solid #1a1a1a",
+            background: "#000000",
           }}
         >
           {["Capability", "Owner", "Reachable From", "Actions"].map((h) => (
             <span
               key={h}
-              style={{ fontSize: 10, fontWeight: 700, color: "#3a4570", textTransform: "uppercase", letterSpacing: "0.07em" }}
+              style={{ fontSize: 10, fontWeight: 700, color: "#444444", textTransform: "uppercase", letterSpacing: "0.07em" }}
             >
               {h}
             </span>
@@ -221,7 +221,7 @@ export default function CapabilitiesPage() {
         </div>
 
         {filtered.length === 0 && !loading && (
-          <div style={{ textAlign: "center", padding: "40px 0", color: "#2e3560", fontSize: 13 }}>
+          <div style={{ textAlign: "center", padding: "40px 0", color: "#444444", fontSize: 13 }}>
             No capabilities discovered
           </div>
         )}
@@ -233,7 +233,7 @@ export default function CapabilitiesPage() {
             ?? row.reachableFrom[0]?.url
             ?? "";
           return (
-            <div key={row.name} style={{ borderBottom: "1px solid #0f1120" }}>
+            <div key={row.name} style={{ borderBottom: "1px solid #111111" }}>
               <div
                 style={{
                   display: "grid",
@@ -242,17 +242,17 @@ export default function CapabilitiesPage() {
                   alignItems: "center",
                 }}
               >
-                <span style={{ fontFamily: "monospace", color: "#7b8fff", fontSize: 13, fontWeight: 600 }}>
+                <span style={{ fontFamily: "monospace", color: "#ffffff", fontSize: 13, fontWeight: 600 }}>
                   {row.name}
                 </span>
-                <span style={{ fontSize: 12, color: "#dde1f5" }}>
+                <span style={{ fontSize: 12, color: "#ffffff" }}>
                   {row.owners.length === 0
-                    ? <span style={{ color: "#2e3560" }}>—</span>
+                    ? <span style={{ color: "#444444" }}>—</span>
                     : row.owners.map((o) => o.name).join(", ")}
                 </span>
-                <span style={{ fontSize: 12, color: "#5a6aaa" }}>
+                <span style={{ fontSize: 12, color: "#888888" }}>
                   {row.reachableFrom.length === 0
-                    ? <span style={{ color: "#2e3560" }}>—</span>
+                    ? <span style={{ color: "#444444" }}>—</span>
                     : row.reachableFrom.map((o) => o.name).join(", ")}
                 </span>
                 <button
@@ -270,7 +270,7 @@ export default function CapabilitiesPage() {
               </div>
 
               {isOpen && (
-                <div style={{ padding: "0 16px 14px", background: "#080a12" }}>
+                <div style={{ padding: "0 16px 14px", background: "#000000" }}>
                   <div style={{ display: "flex", gap: 8, marginBottom: 8, paddingTop: 10 }}>
                     <select
                       value={ownerUrl}
@@ -322,21 +322,21 @@ export default function CapabilitiesPage() {
       {/* Invocation log */}
       {log.length > 0 && (
         <div style={{ marginTop: 22 }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: "#8090c0", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: "#888888", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
             Recent Invocations ({log.length}/20)
           </div>
-          <div style={{ background: "#0d0f1a", border: "1px solid #1e2240", borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 10, overflow: "hidden" }}>
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: "80px 1fr 1fr 60px 1fr",
                 padding: "10px 16px",
-                borderBottom: "1px solid #1a1e38",
-                background: "#0a0c18",
+                borderBottom: "1px solid #1a1a1a",
+                background: "#000000",
               }}
             >
               {["Time", "Capability", "Controller", "ms", "Result"].map((h) => (
-                <span key={h} style={{ fontSize: 10, fontWeight: 700, color: "#3a4570", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+                <span key={h} style={{ fontSize: 10, fontWeight: 700, color: "#444444", textTransform: "uppercase", letterSpacing: "0.07em" }}>
                   {h}
                 </span>
               ))}
@@ -348,17 +348,17 @@ export default function CapabilitiesPage() {
                   display: "grid",
                   gridTemplateColumns: "80px 1fr 1fr 60px 1fr",
                   padding: "9px 16px",
-                  borderBottom: i < log.length - 1 ? "1px solid #0f1120" : "none",
+                  borderBottom: i < log.length - 1 ? "1px solid #111111" : "none",
                   fontSize: 12,
                   alignItems: "start",
                 }}
               >
-                <span style={{ color: "#3a4570", fontFamily: "monospace" }}>
+                <span style={{ color: "#444444", fontFamily: "monospace" }}>
                   {new Date(e.ts).toLocaleTimeString()}
                 </span>
-                <span style={{ fontFamily: "monospace", color: "#7b8fff" }}>{e.capability}</span>
-                <span style={{ color: "#5a6aaa" }}>{e.controller}</span>
-                <span style={{ color: "#dde1f5", fontFamily: "monospace" }}>{e.latencyMs}</span>
+                <span style={{ fontFamily: "monospace", color: "#ffffff" }}>{e.capability}</span>
+                <span style={{ color: "#888888" }}>{e.controller}</span>
+                <span style={{ color: "#ffffff", fontFamily: "monospace" }}>{e.latencyMs}</span>
                 <span
                   style={{
                     fontFamily: "monospace",
@@ -383,11 +383,11 @@ export default function CapabilitiesPage() {
 }
 
 const inputStyle: React.CSSProperties = {
-  background: "#080a12",
-  border: "1px solid #1e2240",
+  background: "#000000",
+  border: "1px solid #1a1a1a",
   borderRadius: 6,
   padding: "8px 12px",
-  color: "#dde1f5",
+  color: "#ffffff",
   fontSize: 12,
   fontFamily: "monospace",
   outline: "none",
@@ -397,11 +397,11 @@ const btnSecondaryStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 6,
-  background: "#0d0f1a",
-  border: "1px solid #1e2240",
+  background: "#0a0a0a",
+  border: "1px solid #1a1a1a",
   borderRadius: 7,
   padding: "8px 14px",
-  color: "#8090c0",
+  color: "#888888",
   fontSize: 13,
   fontWeight: 600,
   cursor: "pointer",
@@ -411,7 +411,7 @@ const btnPrimaryStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 6,
-  background: "#4f6ef7",
+  background: "#0070f3",
   border: "none",
   borderRadius: 6,
   padding: "8px 14px",
@@ -426,11 +426,11 @@ const invokeBtnStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 4,
-  background: "#131830",
-  border: "1px solid #252d58",
+  background: "#111111",
+  border: "1px solid #2a2a2a",
   borderRadius: 5,
   padding: "5px 10px",
-  color: "#7b8fff",
+  color: "#ffffff",
   fontSize: 11,
   fontWeight: 600,
   cursor: "pointer",

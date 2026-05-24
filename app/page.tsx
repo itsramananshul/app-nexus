@@ -16,6 +16,7 @@ import { getNodes, primaryMetricFor, type NodeConfig } from "@/lib/nodes";
 import { useNodeKeyOverrides } from "@/lib/nodeKeyOverrides";
 import type { NodeStatus, SentinelAlert } from "@/lib/types";
 import { usePoller } from "@/lib/usePoller";
+import { useControllerHealth } from "@/lib/useControllerHealth";
 import { notify, requestPermissionOnce } from "@/lib/notifications";
 
 const ALERT_MAX = 200;
@@ -34,6 +35,8 @@ export default function Page() {
 
   const { overrides, setOverride, clearOverride, isLoaded: keysLoaded } =
     useNodeKeyOverrides();
+
+  const controllerHealth = useControllerHealth();
 
   const [mapVisible, setMapVisible] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
@@ -82,7 +85,13 @@ export default function Page() {
     }
   }, []);
 
-  const pollingNodes = keysLoaded ? nodes : [];
+  // Don't poll apps unless at least one controller is reachable — the mesh is
+  // gated on the OII controller plane, not on raw HTTP reachability of the
+  // Vercel-hosted apps.
+  const pollingNodes =
+    keysLoaded && controllerHealth.loaded && controllerHealth.anyReachable
+      ? nodes
+      : [];
   const statuses = usePoller(pollingNodes, handleAlert);
 
   useEffect(() => {
@@ -151,6 +160,15 @@ export default function Page() {
 
   if (baseNodes.length === 0) {
     return <NoNodesView />;
+  }
+
+  if (controllerHealth.loaded && !controllerHealth.anyReachable) {
+    return (
+      <ControllersOfflineView
+        total={controllerHealth.total}
+        hasAny={controllerHealth.total > 0}
+      />
+    );
   }
 
   return (
@@ -500,6 +518,83 @@ function Stat({ color, label, value }: { color: string; label: string; value: nu
       <div style={{ fontSize: 18, fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
       <div style={{ fontSize: 9, color: "#555", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 3 }}>
         {label}
+      </div>
+    </div>
+  );
+}
+
+function ControllersOfflineView({ total, hasAny }: { total: number; hasAny: boolean }) {
+  return (
+    <div
+      style={{
+        height: "100dvh",
+        background: "#000",
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 32,
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 480,
+          width: "100%",
+          background: "#0a0a0a",
+          border: "1px solid #1a1a1a",
+          borderRadius: 10,
+          padding: 28,
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            width: 10,
+            height: 10,
+            borderRadius: "50%",
+            background: "#ef4444",
+            boxShadow: "0 0 12px #ef444499",
+            margin: "0 auto 18px",
+          }}
+        />
+        <div
+          style={{
+            fontSize: 12,
+            color: "#ef4444",
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            fontWeight: 700,
+            marginBottom: 10,
+          }}
+        >
+          Mesh Offline
+        </div>
+        <div style={{ fontSize: 14, color: "#fff", lineHeight: 1.6, marginBottom: 12 }}>
+          {hasAny
+            ? `None of the ${total} registered controller${total === 1 ? "" : "s"} are reachable.`
+            : "No OpenPrem controllers configured."}
+        </div>
+        <div style={{ fontSize: 12, color: "#888", lineHeight: 1.6, marginBottom: 22 }}>
+          The mesh requires at least one live controller. Start a controller locally
+          {hasAny ? " or check that its port is open." : ", or register one from the Controllers page."}
+        </div>
+        <a
+          href="/controllers"
+          style={{
+            display: "inline-block",
+            padding: "8px 16px",
+            background: "transparent",
+            border: "1px solid #2a2a2a",
+            color: "#fff",
+            borderRadius: 5,
+            fontSize: 12,
+            fontWeight: 600,
+            textDecoration: "none",
+            letterSpacing: "0.04em",
+          }}
+        >
+          Open Controllers →
+        </a>
       </div>
     </div>
   );

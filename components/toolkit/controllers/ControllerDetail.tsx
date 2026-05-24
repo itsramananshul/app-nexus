@@ -103,8 +103,8 @@ export function ControllerDetail({ snapshot, onClose, onUpdateUrl }: Props) {
   return (
     <div
       style={{
-        background: "#0d0f1a",
-        border: "1px solid #1e2240",
+        background: "#0a0a0a",
+        border: "1px solid #1a1a1a",
         borderRadius: 10,
         overflow: "hidden",
       }}
@@ -116,13 +116,13 @@ export function ControllerDetail({ snapshot, onClose, onUpdateUrl }: Props) {
           justifyContent: "space-between",
           alignItems: "center",
           padding: "14px 18px",
-          borderBottom: "1px solid #1a1e38",
-          background: "#0a0c18",
+          borderBottom: "1px solid #1a1a1a",
+          background: "#000000",
         }}
       >
-        <span style={{ fontWeight: 700, fontSize: 14, color: "#dde1f5" }}>
+        <span style={{ fontWeight: 700, fontSize: 14, color: "#ffffff" }}>
           {entry.name}
-          <span style={{ fontSize: 11, color: "#3a4570", fontFamily: "monospace", marginLeft: 10 }}>
+          <span style={{ fontSize: 11, color: "#444444", fontFamily: "monospace", marginLeft: 10 }}>
             {entry.url}
           </span>
         </span>
@@ -142,7 +142,7 @@ export function ControllerDetail({ snapshot, onClose, onUpdateUrl }: Props) {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", borderBottom: "1px solid #1a1e38", background: "#0a0c18" }}>
+      <div style={{ display: "flex", borderBottom: "1px solid #1a1a1a", background: "#000000" }}>
         {(["overview", "addressing", "config"] as Tab[]).map((t) => (
           <button
             key={t}
@@ -151,8 +151,8 @@ export function ControllerDetail({ snapshot, onClose, onUpdateUrl }: Props) {
               padding: "10px 18px",
               background: "transparent",
               border: "none",
-              borderBottom: `2px solid ${tab === t ? "#4f6ef7" : "transparent"}`,
-              color: tab === t ? "#dde1f5" : "#4a5080",
+              borderBottom: `2px solid ${tab === t ? "#0070f3" : "transparent"}`,
+              color: tab === t ? "#ffffff" : "#666666",
               fontWeight: tab === t ? 700 : 500,
               fontSize: 12,
               textTransform: "uppercase",
@@ -181,7 +181,7 @@ export function ControllerDetail({ snapshot, onClose, onUpdateUrl }: Props) {
               )}
             {remote.length > 0 && (
               <>
-                <div style={{ fontSize: 11, color: "#3a4570", marginTop: 10, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                <div style={{ fontSize: 11, color: "#444444", marginTop: 10, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                   Remote ({remote.length})
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -200,8 +200,8 @@ export function ControllerDetail({ snapshot, onClose, onUpdateUrl }: Props) {
               ? <Empty text="No apps registered" />
               : snapshot.apps.map((app) => (
                 <div key={app.name} style={rowStyle}>
-                  <span style={{ color: "#dde1f5", fontWeight: 600 }}>{app.name}</span>
-                  <span style={{ fontFamily: "monospace", fontSize: 11, color: "#3a4570" }}>{app.endpoint}</span>
+                  <span style={{ color: "#ffffff", fontWeight: 600 }}>{app.name}</span>
+                  <span style={{ fontFamily: "monospace", fontSize: 11, color: "#444444" }}>{app.endpoint}</span>
                 </div>
               ))}
           </Section>
@@ -216,13 +216,13 @@ export function ControllerDetail({ snapshot, onClose, onUpdateUrl }: Props) {
               : workflows.map((wf) => (
                 <div key={wf.id} style={rowStyle}>
                   <div>
-                    <span style={{ color: "#dde1f5", fontWeight: 600 }}>{wf.workflow_name}</span>
-                    <span style={{ fontSize: 10, fontFamily: "monospace", color: "#3a4570", marginLeft: 8 }}>{wf.id.slice(0, 8)}</span>
+                    <span style={{ color: "#ffffff", fontWeight: 600 }}>{wf.workflow_name}</span>
+                    <span style={{ fontSize: 10, fontFamily: "monospace", color: "#444444", marginLeft: 8 }}>{wf.id.slice(0, 8)}</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <StatusBadge status={wf.status} />
                     {wf.progress && (
-                      <span style={{ fontSize: 11, color: "#4a5080" }}>{wf.progress}</span>
+                      <span style={{ fontSize: 11, color: "#666666" }}>{wf.progress}</span>
                     )}
                   </div>
                 </div>
@@ -234,10 +234,10 @@ export function ControllerDetail({ snapshot, onClose, onUpdateUrl }: Props) {
       {tab === "addressing" && (
         <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
-            <div style={{ fontSize: 11, color: "#5a6080", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+            <div style={{ fontSize: 11, color: "#666666", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
               Current URL
             </div>
-            <div style={{ fontFamily: "monospace", color: "#dde1f5", fontSize: 13 }}>{entry.url}</div>
+            <div style={{ fontFamily: "monospace", color: "#ffffff", fontSize: 13 }}>{entry.url}</div>
           </div>
 
           <div style={{ display: "flex", gap: 18 }}>
@@ -246,7 +246,7 @@ export function ControllerDetail({ snapshot, onClose, onUpdateUrl }: Props) {
           </div>
 
           <div>
-            <div style={{ fontSize: 11, color: "#5a6080", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+            <div style={{ fontSize: 11, color: "#666666", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
               Edit URL
             </div>
             <div style={{ display: "flex", gap: 8 }}>
@@ -284,7 +284,7 @@ export function ControllerDetail({ snapshot, onClose, onUpdateUrl }: Props) {
                 {editMsg.text}
               </div>
             )}
-            <div style={{ fontSize: 11, color: "#3a4570", marginTop: 8, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 11, color: "#444444", marginTop: 8, lineHeight: 1.5 }}>
               The new address is probed via GET /capabilities before saving. Port collisions with other registered controllers block the save.
             </div>
           </div>
@@ -300,7 +300,7 @@ export function ControllerDetail({ snapshot, onClose, onUpdateUrl }: Props) {
           <ConfigRow label="Added" value={new Date(entry.addedAt).toLocaleString()} />
 
           <div>
-            <div style={{ fontSize: 11, color: "#5a6080", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+            <div style={{ fontSize: 11, color: "#666666", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
               Registered Apps ({snapshot.apps.length})
             </div>
             {snapshot.apps.length === 0 ? (
@@ -309,8 +309,8 @@ export function ControllerDetail({ snapshot, onClose, onUpdateUrl }: Props) {
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {snapshot.apps.map((app) => (
                   <div key={app.name} style={rowStyle}>
-                    <span style={{ color: "#dde1f5", fontWeight: 600 }}>{app.name}</span>
-                    <span style={{ fontFamily: "monospace", fontSize: 11, color: "#3a4570" }}>{app.endpoint}</span>
+                    <span style={{ color: "#ffffff", fontWeight: 600 }}>{app.name}</span>
+                    <span style={{ fontFamily: "monospace", fontSize: 11, color: "#444444" }}>{app.endpoint}</span>
                   </div>
                 ))}
               </div>
@@ -318,7 +318,7 @@ export function ControllerDetail({ snapshot, onClose, onUpdateUrl }: Props) {
           </div>
 
           <div>
-            <div style={{ fontSize: 11, color: "#5a6080", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+            <div style={{ fontSize: 11, color: "#666666", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
               Local Capabilities ({local.length})
             </div>
             {local.length === 0 ? (
@@ -373,7 +373,7 @@ function Section({
           border: "none",
           cursor: "pointer",
           padding: "0 0 8px",
-          color: "#8090c0",
+          color: "#888888",
           fontWeight: 600,
           fontSize: 12,
           textTransform: "uppercase",
@@ -398,10 +398,10 @@ function ConfigRow({ label, value, mono }: { label: string; value: string; mono?
         gap: 12,
       }}
     >
-      <span style={{ fontSize: 11, color: "#5a6080", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
+      <span style={{ fontSize: 11, color: "#666666", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
         {label}
       </span>
-      <span style={{ color: "#dde1f5", fontSize: 13, fontFamily: mono ? "monospace" : undefined }}>
+      <span style={{ color: "#ffffff", fontSize: 13, fontFamily: mono ? "monospace" : undefined }}>
         {value}
       </span>
     </div>
@@ -411,10 +411,10 @@ function ConfigRow({ label, value, mono }: { label: string; value: string; mono?
 function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div style={{ fontSize: 11, color: "#5a6080", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>
+      <div style={{ fontSize: 11, color: "#666666", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>
         {label}
       </div>
-      <div style={{ color: "#dde1f5", fontFamily: "monospace", fontSize: 13 }}>{children}</div>
+      <div style={{ color: "#ffffff", fontFamily: "monospace", fontSize: 13 }}>{children}</div>
     </div>
   );
 }
@@ -427,9 +427,9 @@ function Cap({ label, dim }: { label: string; dim?: boolean }) {
         padding: "3px 8px",
         borderRadius: 4,
         fontFamily: "monospace",
-        background: dim ? "#0f1120" : "#131830",
-        color: dim ? "#3a4570" : "#7b8fff",
-        border: `1px solid ${dim ? "#1a1e38" : "#252d58"}`,
+        background: dim ? "#111111" : "#111111",
+        color: dim ? "#444444" : "#ffffff",
+        border: `1px solid ${dim ? "#1a1a1a" : "#2a2a2a"}`,
       }}
     >
       {label}
@@ -447,7 +447,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function Empty({ text }: { text: string }) {
-  return <div style={{ fontSize: 12, color: "#2e3560", padding: "4px 0" }}>{text}</div>;
+  return <div style={{ fontSize: 12, color: "#444444", padding: "4px 0" }}>{text}</div>;
 }
 
 const rowStyle: React.CSSProperties = {
@@ -456,27 +456,27 @@ const rowStyle: React.CSSProperties = {
   alignItems: "center",
   padding: "7px 10px",
   borderRadius: 6,
-  background: "#080a12",
+  background: "#000000",
   fontSize: 12,
 };
 
 const iconBtnStyle: React.CSSProperties = {
   background: "none",
-  border: "1px solid #1e2240",
+  border: "1px solid #1a1a1a",
   cursor: "pointer",
   padding: "5px 7px",
-  color: "#4a5080",
+  color: "#666666",
   borderRadius: 5,
   display: "flex",
   alignItems: "center",
 };
 
 const inputStyle: React.CSSProperties = {
-  background: "#080a12",
-  border: "1px solid #1e2240",
+  background: "#000000",
+  border: "1px solid #1a1a1a",
   borderRadius: 6,
   padding: "9px 12px",
-  color: "#dde1f5",
+  color: "#ffffff",
   fontSize: 13,
   fontFamily: "monospace",
   outline: "none",
@@ -486,7 +486,7 @@ const btnPrimaryStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 6,
-  background: "#4f6ef7",
+  background: "#0070f3",
   border: "none",
   borderRadius: 6,
   padding: "9px 14px",

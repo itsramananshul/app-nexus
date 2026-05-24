@@ -82,8 +82,8 @@ export function AddControllerModal({ onAdd, onClose }: Props) {
     >
       <div
         style={{
-          background: "#0d0f1a",
-          border: "1px solid #1e2240",
+          background: "#0a0a0a",
+          border: "1px solid #1a1a1a",
           borderRadius: 12,
           width: 440,
           overflow: "hidden",
@@ -96,10 +96,10 @@ export function AddControllerModal({ onAdd, onClose }: Props) {
             justifyContent: "space-between",
             alignItems: "center",
             padding: "16px 20px",
-            borderBottom: "1px solid #1a1e38",
+            borderBottom: "1px solid #1a1a1a",
           }}
         >
-          <span style={{ fontWeight: 700, fontSize: 14, color: "#dde1f5" }}>Add Controller</span>
+          <span style={{ fontWeight: 700, fontSize: 14, color: "#ffffff" }}>Add Controller</span>
           <button onClick={onClose} style={iconBtnStyle}><X size={13} /></button>
         </div>
 
@@ -161,9 +161,9 @@ export function AddControllerModal({ onAdd, onClose }: Props) {
                     flex: 1,
                     padding: "8px 0",
                     borderRadius: 6,
-                    border: `1px solid ${role === r ? "#4f6ef7" : "#1e2240"}`,
-                    background: role === r ? "#151833" : "#080a12",
-                    color: role === r ? "#dde1f5" : "#4a5080",
+                    border: `1px solid ${role === r ? "#0070f3" : "#1a1a1a"}`,
+                    background: role === r ? "#1a1a1a" : "#000000",
+                    color: role === r ? "#ffffff" : "#666666",
                     fontWeight: role === r ? 600 : 400,
                     fontSize: 13,
                     cursor: "pointer",
@@ -196,7 +196,7 @@ export function AddControllerModal({ onAdd, onClose }: Props) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label style={{ fontSize: 11, fontWeight: 600, color: "#5a6080", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 }}>
+      <label style={{ fontSize: 11, fontWeight: 600, color: "#666666", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 }}>
         {label}
       </label>
       {children}
@@ -206,11 +206,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const inputStyle: React.CSSProperties = {
   flex: 1,
-  background: "#080a12",
-  border: "1px solid #1e2240",
+  background: "#000000",
+  border: "1px solid #1a1a1a",
   borderRadius: 6,
   padding: "8px 12px",
-  color: "#dde1f5",
+  color: "#ffffff",
   fontSize: 13,
   fontFamily: "monospace",
   outline: "none",
@@ -219,21 +219,21 @@ const inputStyle: React.CSSProperties = {
 
 const iconBtnStyle: React.CSSProperties = {
   background: "none",
-  border: "1px solid #1e2240",
+  border: "1px solid #1a1a1a",
   cursor: "pointer",
   padding: "5px 7px",
-  color: "#4a5080",
+  color: "#666666",
   borderRadius: 5,
   display: "flex",
   alignItems: "center",
 };
 
 const btnSecondaryStyle: React.CSSProperties = {
-  background: "#0f1120",
-  border: "1px solid #1e2240",
+  background: "#111111",
+  border: "1px solid #1a1a1a",
   borderRadius: 6,
   padding: "8px 14px",
-  color: "#8090c0",
+  color: "#888888",
   fontSize: 12,
   fontWeight: 600,
   cursor: "pointer",
@@ -241,7 +241,7 @@ const btnSecondaryStyle: React.CSSProperties = {
 };
 
 const btnPrimaryStyle: React.CSSProperties = {
-  background: "#4f6ef7",
+  background: "#0070f3",
   border: "none",
   borderRadius: 6,
   padding: "10px",

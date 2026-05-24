@@ -33,8 +33,8 @@ export function ControllerCard({ snapshot, selected, onSelect, onRemove }: Props
     <div
       onClick={onSelect}
       style={{
-        background: selected ? "#111428" : "#0d0f1a",
-        border: `1px solid ${selected ? "#4f6ef7" : "#1e2240"}`,
+        background: selected ? "#111428" : "#0a0a0a",
+        border: `1px solid ${selected ? "#0070f3" : "#1a1a1a"}`,
         borderRadius: 10,
         padding: "16px 18px",
         cursor: "pointer",
@@ -46,9 +46,9 @@ export function ControllerCard({ snapshot, selected, onSelect, onRemove }: Props
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {isRouter
-            ? <GitBranch size={16} color="#4f6ef7" />
-            : <Cpu size={16} color="#4f6ef7" />}
-          <span style={{ fontWeight: 700, fontSize: 14, color: "#dde1f5" }}>
+            ? <GitBranch size={16} color="#0070f3" />
+            : <Cpu size={16} color="#0070f3" />}
+          <span style={{ fontWeight: 700, fontSize: 14, color: "#ffffff" }}>
             {entry.name}
           </span>
           <span
@@ -60,7 +60,7 @@ export function ControllerCard({ snapshot, selected, onSelect, onRemove }: Props
               letterSpacing: "0.06em",
               textTransform: "uppercase",
               background: isRouter ? "#1a1f40" : "#141a30",
-              color: isRouter ? "#7b8fff" : "#5a6aaa",
+              color: isRouter ? "#ffffff" : "#888888",
             }}
           >
             {entry.role}
@@ -86,7 +86,7 @@ export function ControllerCard({ snapshot, selected, onSelect, onRemove }: Props
       </div>
 
       {/* URL */}
-      <div style={{ fontSize: 11, color: "#3a4570", fontFamily: "monospace", marginBottom: 14 }}>
+      <div style={{ fontSize: 11, color: "#444444", fontFamily: "monospace", marginBottom: 14 }}>
         {entry.url}
       </div>
 
@@ -129,8 +129,8 @@ export function ControllerCard({ snapshot, selected, onSelect, onRemove }: Props
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div style={{ fontSize: 18, fontWeight: 700, color: "#dde1f5", lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 10, color: "#3a4570", marginTop: 3, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: "#ffffff", lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 10, color: "#444444", marginTop: 3, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
     </div>
   );
 }

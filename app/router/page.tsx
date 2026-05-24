@@ -108,8 +108,8 @@ export default function RouterPage() {
   if (!routerNode) {
     return (
       <div style={{ padding: "28px 32px" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "#dde1f5", margin: "0 0 8px" }}>Router</h1>
-        <p style={{ color: "#3a4570", fontSize: 13 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "#ffffff", margin: "0 0 8px" }}>Router</h1>
+        <p style={{ color: "#444444", fontSize: 13 }}>
           No router configured. Add a node with role &quot;router&quot; in the Controllers page.
         </p>
       </div>
@@ -122,10 +122,10 @@ export default function RouterPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <GitBranch size={18} color="#4f6ef7" />
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#dde1f5" }}>Router</h1>
+            <GitBranch size={18} color="#0070f3" />
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#ffffff" }}>Router</h1>
           </div>
-          <p style={{ margin: 0, fontSize: 12, color: "#3a4570", fontFamily: "monospace" }}>{routerNode.url}</p>
+          <p style={{ margin: 0, fontSize: 12, color: "#444444", fontFamily: "monospace" }}>{routerNode.url}</p>
         </div>
         <button
           onClick={() => void refresh(routerNode, controllers)}
@@ -151,8 +151,8 @@ export default function RouterPage() {
             .filter((pair): pair is readonly [string, string] => pair[1] !== null)
             .map(([k, v]) => (
               <div key={k} style={summaryCardStyle}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: "#dde1f5" }}>{v}</div>
-                <div style={{ fontSize: 10, color: "#3a4570", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 3 }}>{k.replace(/_/g, " ")}</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "#ffffff" }}>{v}</div>
+                <div style={{ fontSize: 10, color: "#444444", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 3 }}>{k.replace(/_/g, " ")}</div>
               </div>
             ))}
         </div>
@@ -163,7 +163,7 @@ export default function RouterPage() {
         {/* Peers — with latency (filter the router out of its own peer list) */}
         <Section
           title={`Peers (${peers.filter((p) => p.name !== routerNode.name).length})`}
-          icon={<Radio size={13} color="#4f6ef7" />}
+          icon={<Radio size={13} color="#0070f3" />}
         >
           {(() => {
             const visiblePeers = peers.filter((p) => p.name !== routerNode.name);
@@ -174,11 +174,11 @@ export default function RouterPage() {
               return (
                 <div key={p.url} style={rowStyle}>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, color: "#dde1f5", fontSize: 13 }}>
+                    <div style={{ fontWeight: 600, color: "#ffffff", fontSize: 13 }}>
                       {p.name ?? display}
                     </div>
-                    <div style={{ fontSize: 11, fontFamily: "monospace", color: "#3a4570", marginTop: 2 }}>{display}</div>
-                    <div style={{ fontSize: 11, color: "#4a5080", marginTop: 3 }}>
+                    <div style={{ fontSize: 11, fontFamily: "monospace", color: "#444444", marginTop: 2 }}>{display}</div>
+                    <div style={{ fontSize: 11, color: "#666666", marginTop: 3 }}>
                       {p.capabilities.length} capabilities
                     </div>
                   </div>
@@ -187,7 +187,7 @@ export default function RouterPage() {
                     <div style={{ marginTop: 5 }}>
                       <LatencyBadge result={lat} />
                     </div>
-                    <div style={{ fontSize: 10, color: "#3a4570", marginTop: 4 }}>
+                    <div style={{ fontSize: 10, color: "#444444", marginTop: 4 }}>
                       {msAgo(p.last_heartbeat)}
                     </div>
                   </div>
@@ -198,23 +198,23 @@ export default function RouterPage() {
         </Section>
 
         {/* Sessions */}
-        <Section title={`Sessions (${sessions.length})`} icon={<GitBranch size={13} color="#4f6ef7" />}>
+        <Section title={`Sessions (${sessions.length})`} icon={<GitBranch size={13} color="#0070f3" />}>
           {sessions.length === 0
             ? <Empty text="No active sessions" />
             : sessions.map((s) => (
               <div key={s.workflow_id} style={rowStyle}>
                 <div>
-                  <div style={{ fontWeight: 600, color: "#dde1f5", fontSize: 13 }}>{s.workflow_name}</div>
-                  <div style={{ fontSize: 10, fontFamily: "monospace", color: "#3a4570", marginTop: 2 }}>
+                  <div style={{ fontWeight: 600, color: "#ffffff", fontSize: 13 }}>{s.workflow_name}</div>
+                  <div style={{ fontSize: 10, fontFamily: "monospace", color: "#444444", marginTop: 2 }}>
                     {s.workflow_id.slice(0, 12)}…
                   </div>
-                  <div style={{ fontSize: 11, color: "#4a5080", marginTop: 3 }}>
+                  <div style={{ fontSize: 11, color: "#666666", marginTop: 3 }}>
                     {s.route.length > 0 ? `Route: ${s.route.join(" → ")}` : `From: ${s.source_peer}`}
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <StatusBadge status={s.status} />
-                  <div style={{ fontSize: 10, color: "#3a4570", marginTop: 4 }}>
+                  <div style={{ fontSize: 10, color: "#444444", marginTop: 4 }}>
                     {msAgo(s.started_at)}
                   </div>
                 </div>
@@ -224,12 +224,12 @@ export default function RouterPage() {
       </div>
 
       {/* Topology */}
-      <Section title="Network Topology" icon={<Network size={13} color="#4f6ef7" />}>
+      <Section title="Network Topology" icon={<Network size={13} color="#0070f3" />}>
         <TopologyMap
           nodes={topology}
           onSelect={(id) => router.push(`/controllers#highlight=${id}`)}
         />
-        <div style={{ fontSize: 11, color: "#3a4570", marginTop: 10, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 11, color: "#444444", marginTop: 10, lineHeight: 1.5 }}>
           Edges show remote capability relationships derived from each controller&apos;s /capabilities response. Click any node to open it in Controllers.
         </div>
       </Section>
@@ -249,7 +249,7 @@ function TopologyMap({
   onSelect: (id: string) => void;
 }) {
   if (nodes.length === 0) {
-    return <div style={{ fontSize: 12, color: "#2e3560", padding: "20px 0" }}>No controllers in registry</div>;
+    return <div style={{ fontSize: 12, color: "#444444", padding: "20px 0" }}>No controllers in registry</div>;
   }
 
   const width = 880;
@@ -290,8 +290,8 @@ function TopologyMap({
         viewBox={`0 0 ${width} ${height}`}
         width="100%"
         style={{
-          background: "#080a12",
-          border: "1px solid #1a1e38",
+          background: "#000000",
+          border: "1px solid #1a1a1a",
           borderRadius: 8,
           display: "block",
         }}
@@ -307,7 +307,7 @@ function TopologyMap({
               y1={a.y}
               x2={b.x}
               y2={b.y}
-              stroke="#252d58"
+              stroke="#2a2a2a"
               strokeWidth={1}
               strokeOpacity={0.7}
             />
@@ -318,8 +318,8 @@ function TopologyMap({
         {positions.map((p) => {
           const isRouter = p.controller.role === "router";
           const offline = p.caps === null;
-          const fill = isRouter ? "#1a1f40" : "#131830";
-          const stroke = offline ? "#3a1010" : isRouter ? "#7b8fff" : "#4f6ef7";
+          const fill = isRouter ? "#1a1f40" : "#111111";
+          const stroke = offline ? "#3a1010" : isRouter ? "#ffffff" : "#0070f3";
           const port = (() => {
             try { return new URL(p.controller.url).port || "—"; } catch { return "—"; }
           })();
@@ -334,7 +334,7 @@ function TopologyMap({
                 x={p.x}
                 y={p.y - 2}
                 textAnchor="middle"
-                fill="#dde1f5"
+                fill="#ffffff"
                 fontSize={11}
                 fontWeight={700}
                 fontFamily="system-ui, sans-serif"
@@ -345,7 +345,7 @@ function TopologyMap({
                 x={p.x}
                 y={p.y + 11}
                 textAnchor="middle"
-                fill={offline ? "#ef4444" : "#5a6aaa"}
+                fill={offline ? "#ef4444" : "#888888"}
                 fontSize={9}
                 fontFamily="monospace"
               >
@@ -361,7 +361,7 @@ function TopologyMap({
 
 function LatencyBadge({ result }: { result: LatencyResult | undefined }) {
   if (!result) {
-    return <span style={{ fontSize: 10, color: "#3a4570" }}>—</span>;
+    return <span style={{ fontSize: 10, color: "#444444" }}>—</span>;
   }
   if (result.ms === null) {
     return (
@@ -383,10 +383,10 @@ function LatencyBadge({ result }: { result: LatencyResult | undefined }) {
 
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div style={{ background: "#0d0f1a", border: "1px solid #1e2240", borderRadius: 10, overflow: "hidden" }}>
-      <div style={{ padding: "12px 16px", borderBottom: "1px solid #1a1e38", display: "flex", alignItems: "center", gap: 7 }}>
+    <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 10, overflow: "hidden" }}>
+      <div style={{ padding: "12px 16px", borderBottom: "1px solid #1a1a1a", display: "flex", alignItems: "center", gap: 7 }}>
         {icon}
-        <span style={{ fontWeight: 700, fontSize: 13, color: "#8090c0", textTransform: "uppercase", letterSpacing: "0.06em" }}>{title}</span>
+        <span style={{ fontWeight: 700, fontSize: 13, color: "#888888", textTransform: "uppercase", letterSpacing: "0.06em" }}>{title}</span>
       </div>
       <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>{children}</div>
     </div>
@@ -408,7 +408,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function Empty({ text }: { text: string }) {
-  return <div style={{ fontSize: 12, color: "#2e3560", padding: "8px 0" }}>{text}</div>;
+  return <div style={{ fontSize: 12, color: "#444444", padding: "8px 0" }}>{text}</div>;
 }
 
 const rowStyle: React.CSSProperties = {
@@ -417,12 +417,12 @@ const rowStyle: React.CSSProperties = {
   alignItems: "flex-start",
   padding: "10px 12px",
   borderRadius: 7,
-  background: "#080a12",
+  background: "#000000",
 };
 
 const summaryCardStyle: React.CSSProperties = {
-  background: "#0d0f1a",
-  border: "1px solid #1e2240",
+  background: "#0a0a0a",
+  border: "1px solid #1a1a1a",
   borderRadius: 8,
   padding: "14px 18px",
   minWidth: 120,
@@ -432,11 +432,11 @@ const btnSecondaryStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 6,
-  background: "#0d0f1a",
-  border: "1px solid #1e2240",
+  background: "#0a0a0a",
+  border: "1px solid #1a1a1a",
   borderRadius: 7,
   padding: "8px 14px",
-  color: "#8090c0",
+  color: "#888888",
   fontSize: 13,
   fontWeight: 600,
   cursor: "pointer",

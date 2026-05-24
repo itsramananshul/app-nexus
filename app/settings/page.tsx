@@ -36,10 +36,10 @@ export default function SettingsPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <SettingsIcon size={18} color="#4f6ef7" />
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#dde1f5" }}>Settings</h1>
+            <SettingsIcon size={18} color="#0070f3" />
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#ffffff" }}>Settings</h1>
           </div>
-          <p style={{ margin: 0, fontSize: 12, color: "#3a4570" }}>
+          <p style={{ margin: 0, fontSize: 12, color: "#444444" }}>
             Application-level configuration stored locally
           </p>
         </div>
@@ -57,8 +57,8 @@ export default function SettingsPage() {
 
       <div
         style={{
-          background: "#0d0f1a",
-          border: "1px solid #1e2240",
+          background: "#0a0a0a",
+          border: "1px solid #1a1a1a",
           borderRadius: 10,
           padding: 20,
           display: "flex",
@@ -127,9 +127,9 @@ export default function SettingsPage() {
         )}
       </div>
 
-      <div style={{ fontSize: 11, color: "#3a4570", marginTop: 14, lineHeight: 1.6 }}>
-        All settings are stored in <code style={{ color: "#7b8fff" }}>localStorage</code> under{" "}
-        <code style={{ color: "#7b8fff" }}>openprem:settings</code>. Values save on blur or via the Save button.
+      <div style={{ fontSize: 11, color: "#444444", marginTop: 14, lineHeight: 1.6 }}>
+        All settings are stored in <code style={{ color: "#ffffff" }}>localStorage</code> under{" "}
+        <code style={{ color: "#ffffff" }}>openprem:settings</code>. Values save on blur or via the Save button.
       </div>
     </div>
   );
@@ -150,7 +150,7 @@ function Field({
         style={{
           fontSize: 11,
           fontWeight: 700,
-          color: "#8090c0",
+          color: "#888888",
           textTransform: "uppercase",
           letterSpacing: "0.06em",
           display: "block",
@@ -161,18 +161,18 @@ function Field({
       </label>
       {children}
       {help && (
-        <div style={{ fontSize: 11, color: "#3a4570", marginTop: 6, lineHeight: 1.5 }}>{help}</div>
+        <div style={{ fontSize: 11, color: "#444444", marginTop: 6, lineHeight: 1.5 }}>{help}</div>
       )}
     </div>
   );
 }
 
 const inputStyle: React.CSSProperties = {
-  background: "#080a12",
-  border: "1px solid #1e2240",
+  background: "#000000",
+  border: "1px solid #1a1a1a",
   borderRadius: 6,
   padding: "9px 12px",
-  color: "#dde1f5",
+  color: "#ffffff",
   fontSize: 13,
   fontFamily: "monospace",
   outline: "none",
@@ -184,11 +184,11 @@ const btnSecondaryStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 6,
-  background: "#0d0f1a",
-  border: "1px solid #1e2240",
+  background: "#0a0a0a",
+  border: "1px solid #1a1a1a",
   borderRadius: 7,
   padding: "8px 14px",
-  color: "#8090c0",
+  color: "#888888",
   fontSize: 13,
   fontWeight: 600,
   cursor: "pointer",
@@ -198,7 +198,7 @@ const btnPrimaryStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 6,
-  background: "#4f6ef7",
+  background: "#0070f3",
   border: "none",
   borderRadius: 7,
   padding: "8px 14px",
