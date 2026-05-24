@@ -1,447 +1,175 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-
-export type ScenarioKey = "cascade" | "warehouse" | "materials";
-
-export interface ScenarioOption {
-  key: ScenarioKey;
-  label: string;
-  short: string;
-}
-
-export const SCENARIO_OPTIONS: ScenarioOption[] = [
-  { key: "cascade", label: "Cascade Failure — Full Supply Chain", short: "Cascade Failure" },
-  { key: "warehouse", label: "Warehouse Outage — W1 + W2 Down", short: "Warehouse Outage" },
-  { key: "materials", label: "Materials Shortage — All Factories", short: "Materials Shortage" },
-];
+import type { NodeStatus } from "@/lib/types";
 
 interface TopBarProps {
-  // The props that page.tsx still passes — most are no longer rendered after
-  // the dark redesign, but we keep them in the interface so the call site
-  // doesn't have to change wholesale.
   totalNodes: number;
-  statuses: Map<string, unknown>;
+  statuses: Map<string, NodeStatus>;
   nodesWithoutKey: number;
-  collapsingNodeIds: Set<string>;
   activeAlerts: number;
-  eraMode: "before" | "after";
-  onChangeEra: (era: "before" | "after") => void;
   onOpenApiKeys: () => void;
-  onStartPitch: () => void;
-  onResetDemo: () => void;
-  onRunScenario: (key: ScenarioKey) => void;
   onOpenAudit: () => void;
-  activeScenario: ScenarioKey | null;
-  scenarioBusy: boolean;
   mapVisible: boolean;
   onToggleMap: () => void;
-  pitchActive: boolean;
-  onTogglePitch: () => void;
 }
 
 export function TopBar({
-  eraMode,
-  onChangeEra,
+  totalNodes,
+  statuses,
+  nodesWithoutKey,
+  activeAlerts,
   onOpenApiKeys,
-  onResetDemo,
-  onRunScenario,
   onOpenAudit,
-  activeScenario,
-  scenarioBusy,
   mapVisible,
   onToggleMap,
-  pitchActive,
-  onTogglePitch,
 }: TopBarProps) {
-  const [scenariosOpen, setScenariosOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
-  const scenariosButtonRef = useRef<HTMLButtonElement | null>(null);
-
-  useEffect(() => {
-    if (!scenariosOpen) return;
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setScenariosOpen(false);
-    };
-    const onResize = () => recomputeMenuPosition();
-    window.addEventListener("keydown", onEsc);
-    window.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("keydown", onEsc);
-      window.removeEventListener("resize", onResize);
-    };
-  }, [scenariosOpen]);
-
-  const recomputeMenuPosition = () => {
-    if (!scenariosButtonRef.current) return;
-    const rect = scenariosButtonRef.current.getBoundingClientRect();
-    // Open DOWNWARD from the topbar — topbar is at the top of screen so there
-    // is no room above. Dropdown appears below the button via top + rect.bottom.
-    const width = 280;
-    const left = Math.min(
-      Math.max(8, rect.left),
-      window.innerWidth - width - 8,
-    );
-    setMenuPos({
-      top: rect.bottom + 8,
-      left,
-    });
-  };
+  let ok = 0;
+  let degraded = 0;
+  let down = 0;
+  for (const s of statuses.values()) {
+    if (s.health === "ok") ok += 1;
+    else if (s.health === "degraded") degraded += 1;
+    else if (s.health === "unreachable") down += 1;
+  }
 
   return (
     <header
       style={{
         height: 48,
-        background: "#000",
-        borderBottom: "1px solid #1a1a1a",
         display: "flex",
         alignItems: "center",
+        justifyContent: "space-between",
         padding: "0 16px",
-        gap: 16,
+        background: "#000",
+        borderBottom: "1px solid #1a1a1a",
+        flexShrink: 0,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }} aria-label="OpenPrem">
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 32 32"
-          fill="none"
-          stroke="#ffffff"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          aria-hidden
-        >
-          {/* Outer crescent — large circle with bottom gap */}
-          <path d="M 9 28 A 13 13 0 1 1 23 28" />
-          {/* Inner crescent — small circle with bottom gap */}
-          <path d="M 13 21 A 5 5 0 1 1 19 21" />
-        </svg>
+      {/* Left: wordmark */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <span
-          style={{ color: "#fff", fontSize: 13, fontWeight: 600, letterSpacing: "0.04em" }}
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: "#fff",
+            letterSpacing: "0.15em",
+          }}
         >
-          OpenPrem
+          OPENPREM
+        </span>
+        <span
+          style={{
+            fontSize: 11,
+            color: "#666",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Open Intelligence Interconnect
         </span>
       </div>
 
-      <div style={{ flex: 1 }} />
-
-      <div className="flex items-center gap-2 flex-wrap justify-end">
-        {!pitchActive ? (
-          <>
-            <span className="hidden md:inline-flex">
-              <EraToggle eraMode={eraMode} onChange={onChangeEra} />
-            </span>
-
-            <span className="hidden lg:inline-flex">
-              <GhostButton onClick={onOpenApiKeys} title="API Keys">
-                API Keys
-              </GhostButton>
-            </span>
-
-            <GhostButton
-              buttonRef={scenariosButtonRef}
-              onClick={() => {
-                if (scenariosOpen) setScenariosOpen(false);
-                else {
-                  recomputeMenuPosition();
-                  setScenariosOpen(true);
-                }
-              }}
-              disabled={scenarioBusy}
-              title="Run a scenario"
-            >
-              Scenarios
-              <span style={{ marginLeft: 6, color: "#666" }}>▾</span>
-              {activeScenario ? (
-                <span style={{ marginLeft: 6, color: "#14b8a6" }} className="hidden sm:inline">· active</span>
-              ) : null}
-            </GhostButton>
-
-            <span className="hidden md:inline-flex">
-              <GhostButton onClick={onOpenAudit} title="Open audit timeline">
-                Audit
-              </GhostButton>
-            </span>
-
-            <span className="hidden sm:inline-flex">
-              <GhostButton
-                onClick={onToggleMap}
-                active={mapVisible}
-                title="Toggle map"
-              >
-                Map
-              </GhostButton>
-            </span>
-
-            <span className="hidden lg:inline-flex">
-              <GhostButton onClick={onResetDemo} title="Reset demo data">
-                Reset
-              </GhostButton>
-            </span>
-          </>
+      {/* Right: health pills + ghost buttons */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <HealthPill color="#22c55e" label="Online" value={ok} />
+        <HealthPill color="#f59e0b" label="Degraded" value={degraded} />
+        <HealthPill color="#ef4444" label="Down" value={down} />
+        <span style={{ fontSize: 10, color: "#444", marginRight: 4 }}>
+          {totalNodes} total
+        </span>
+        {activeAlerts > 0 ? (
+          <HealthPill color="#ef4444" label="Alerts" value={activeAlerts} />
         ) : null}
 
-        <PitchPill active={pitchActive} onClick={onTogglePitch} />
+        <GhostButton onClick={onToggleMap} active={mapVisible} title="Toggle supply map">
+          Map
+        </GhostButton>
+        <GhostButton onClick={onOpenAudit} title="Open audit log">
+          Audit
+        </GhostButton>
+        <GhostButton
+          onClick={onOpenApiKeys}
+          title="API keys"
+          accent={nodesWithoutKey > 0}
+        >
+          API Keys{nodesWithoutKey > 0 ? ` (${nodesWithoutKey})` : ""}
+        </GhostButton>
       </div>
-
-      <ScenariosMenu
-        open={scenariosOpen}
-        pos={menuPos}
-        active={activeScenario}
-        busy={scenarioBusy}
-        onClose={() => setScenariosOpen(false)}
-        onPick={(key) => {
-          setScenariosOpen(false);
-          onRunScenario(key);
-        }}
-      />
     </header>
   );
 }
 
-function PitchPill({
-  active,
-  onClick,
-}: {
-  active: boolean;
-  onClick: () => void;
-}) {
+function HealthPill({ color, label, value }: { color: string; label: string; value: number }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <span
       style={{
-        background: "#0070f3",
-        color: "#ffffff",
-        border: "none",
-        borderRadius: 20,
-        padding: "6px 14px",
-        fontSize: 12,
-        fontWeight: 600,
-        cursor: "pointer",
-        boxShadow: active ? "0 0 0 2px #0070f3" : "none",
-        letterSpacing: "0.04em",
-        transition: "box-shadow 120ms ease, background 120ms ease",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "4px 8px",
+        background: "#0a0a0a",
+        border: "1px solid #1a1a1a",
+        borderRadius: 5,
+        fontSize: 11,
       }}
     >
-      {active ? "✕ EXIT PITCH" : "● PITCH MODE"}
-    </button>
+      <span
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: "50%",
+          background: color,
+          boxShadow: `0 0 6px ${color}66`,
+        }}
+      />
+      <span style={{ fontWeight: 700, color: "#fff" }}>{value}</span>
+      <span style={{ color: "#888" }}>{label}</span>
+    </span>
   );
 }
 
 function GhostButton({
-  children,
   onClick,
-  disabled,
-  active,
+  children,
   title,
-  buttonRef,
+  active,
+  accent,
 }: {
-  children: React.ReactNode;
   onClick: () => void;
-  disabled?: boolean;
-  active?: boolean;
+  children: React.ReactNode;
   title?: string;
-  buttonRef?: React.Ref<HTMLButtonElement>;
+  active?: boolean;
+  accent?: boolean;
 }) {
   return (
     <button
-      ref={buttonRef}
       type="button"
       onClick={onClick}
-      disabled={disabled}
       title={title}
       style={{
-        height: 32,
-        padding: "0 12px",
         background: active ? "#111" : "transparent",
-        color: active ? "#fff" : "#888",
-        border: `1px solid ${active ? "#444" : "#2a2a2a"}`,
-        borderRadius: 6,
-        fontSize: 12,
-        fontWeight: 500,
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.4 : 1,
-        transition: "border-color 120ms ease, color 120ms ease, background 120ms ease",
-        display: "inline-flex",
-        alignItems: "center",
+        border: `1px solid ${accent ? "#f59e0b" : active ? "#2a2a2a" : "#2a2a2a"}`,
+        color: accent ? "#f59e0b" : active ? "#fff" : "#888",
+        padding: "5px 10px",
+        borderRadius: 5,
+        fontSize: 11,
+        fontWeight: 600,
+        cursor: "pointer",
+        transition: "color 120ms, border-color 120ms",
       }}
       onMouseEnter={(e) => {
-        if (disabled || active) return;
-        e.currentTarget.style.borderColor = "#444";
-        e.currentTarget.style.color = "#fff";
+        if (!active && !accent) {
+          e.currentTarget.style.color = "#fff";
+          e.currentTarget.style.borderColor = "#444";
+        }
       }}
       onMouseLeave={(e) => {
-        if (disabled || active) return;
-        e.currentTarget.style.borderColor = "#2a2a2a";
-        e.currentTarget.style.color = "#888";
+        if (!active && !accent) {
+          e.currentTarget.style.color = "#888";
+          e.currentTarget.style.borderColor = "#2a2a2a";
+        }
       }}
     >
       {children}
     </button>
   );
-}
-
-function EraToggle({
-  eraMode,
-  onChange,
-}: {
-  eraMode: "before" | "after";
-  onChange: (e: "before" | "after") => void;
-}) {
-  const pill = (label: string, value: "before" | "after") => {
-    const active = eraMode === value;
-    return (
-      <button
-        key={value}
-        type="button"
-        onClick={() => onChange(value)}
-        aria-pressed={active}
-        style={{
-          height: 30,
-          padding: "0 10px",
-          background: active ? "#111" : "transparent",
-          color: active ? "#fff" : "#666",
-          border: "none",
-          fontSize: 11,
-          fontWeight: 500,
-          letterSpacing: "0.06em",
-          cursor: "pointer",
-        }}
-      >
-        {label}
-      </button>
-    );
-  };
-  return (
-    <div
-      role="group"
-      aria-label="View era"
-      style={{
-        height: 32,
-        display: "inline-flex",
-        border: "1px solid #2a2a2a",
-        borderRadius: 6,
-        overflow: "hidden",
-        marginRight: 4,
-      }}
-    >
-      {pill("Before", "before")}
-      <span style={{ width: 1, background: "#2a2a2a" }} />
-      {pill("After", "after")}
-    </div>
-  );
-}
-
-function ScenariosMenu({
-  open,
-  pos,
-  active,
-  busy,
-  onClose,
-  onPick,
-}: {
-  open: boolean;
-  pos: { top: number; left: number } | null;
-  active: ScenarioKey | null;
-  busy: boolean;
-  onClose: () => void;
-  onPick: (k: ScenarioKey) => void;
-}) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted || !open) return null;
-
-  const body = (
-    <>
-      <div
-        onClick={onClose}
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.6)",
-          zIndex: 9998,
-        }}
-        aria-hidden
-      />
-      <div
-        role="menu"
-        aria-label="Scenarios"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          position: "fixed",
-          top: pos?.top ?? 56,
-          left: pos?.left ?? 16,
-          width: 280,
-          maxHeight: 320,
-          overflowY: "auto",
-          backgroundColor: "#111111",
-          border: "1px solid #2a2a2a",
-          borderRadius: 8,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.8)",
-          zIndex: 9999,
-          color: "#cccccc",
-        }}
-      >
-        <div
-          style={{
-            padding: "10px 16px 6px",
-            fontSize: 10,
-            color: "#444",
-            textTransform: "uppercase",
-            letterSpacing: "0.12em",
-            fontWeight: 600,
-            borderBottom: "1px solid #222",
-          }}
-        >
-          Select a scenario
-        </div>
-        {SCENARIO_OPTIONS.map((opt) => {
-          const isActive = active === opt.key;
-          return (
-            <button
-              key={opt.key}
-              type="button"
-              onClick={() => onPick(opt.key)}
-              disabled={busy}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-                width: "100%",
-                padding: "10px 16px",
-                background: "transparent",
-                border: "none",
-                cursor: busy ? "not-allowed" : "pointer",
-                opacity: busy ? 0.4 : 1,
-                color: "#cccccc",
-                fontSize: 13,
-                fontWeight: 500,
-                textAlign: "left",
-              }}
-              onMouseEnter={(e) => {
-                if (busy) return;
-                e.currentTarget.style.background = "#1a1a1a";
-                e.currentTarget.style.color = "#ffffff";
-              }}
-              onMouseLeave={(e) => {
-                if (busy) return;
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = isActive ? "#ffffff" : "#cccccc";
-              }}
-            >
-              <span style={{ color: "inherit" }}>{opt.short}</span>
-              {isActive ? (
-                <span style={{ color: "#22c55e", fontSize: 14 }}>✓</span>
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
-    </>
-  );
-
-  return createPortal(body, document.body);
 }
